@@ -35,6 +35,79 @@ __all__ = [
 ]
 
 
+@nx.not_implemented_for("directed")
+def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, node_weight=None, pos=None, iterations=50,
+                                                                 threshold=1e-4, centrality_type=0):
+    """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
+    Gravitational Forces.
+
+    Receives a Hyper-Graph and changes it to be a normal graph. Then calculates the Value of each node according to
+    Social centrality Parameters. Nodes with high value are counted as central nodes in the graph and are more attracted
+    to the center of the graph dimension.
+
+    After running the algorithm the pos will be updated to reflect the social and force-directed values of the nodes.
+
+
+    Parameters
+    ----------
+    G : graph
+      A NetworkX graph.
+
+    node_weight : int, optional (default=None)
+      if there exists a social parameters then will use this.
+      Not exits then will generate one using the $centrality_type$
+
+
+    k : float (default=None)
+        Optimal distance between nodes.  If None the distance is set to
+        1/sqrt(n) where n is the number of nodes.  Increase this value
+        to move nodes farther apart.
+
+    pos : dict or None  optional (default=None)
+        Initial positions for nodes as a dictionary with node as keys
+        and values as a coordinate list or tuple.  If None, then use
+        random initial positions.
+
+    iterations : int  optional (default=50)
+        Maximum number of iterations taken
+
+    threshold: float optional (default = 1e-4)
+        Threshold for relative error in node position changes.
+        The iteration stops if the error is below this threshold.
+
+    centrality_type: int optional (default=0)
+        Centrality type for the Social gravity field used in the algorithm.
+
+
+    Returns
+    -------
+    pos : dict
+        A dictionary of positions keyed by node
+
+    Notes
+    -----
+    This algorithm currently only works on hyper-graphs.
+
+    The algorithm is based on the work of Fruchterman-Reingold and adding Forces that mimic the Social interaction of
+    social networks. Forces such as closeness, betweenness and degree centrality. using these forces to force place the
+    nodes of the graph in a circular way and minimize the space used by the graph in pointing it.
+
+
+    References
+    ----------
+    .. [1] Michael J. Bannister, David Eppstein, Michael T. Goodrich and Lowell Trott:
+       Force-Directed Graph Drawing Using Social Gravity and Scaling.
+       Graph Drawing. GD 2012. Lecture Notes in Computer Science, vol 7704. Springer, Berlin, Heidelberg.
+       https://doi.org/10.1007/978-3-642-36763-2_37
+    .. [2] Naheed Anjum Arafat and St´ephane Bressan:
+       Hypergraph Drawing by Force-Directed Placement
+       DEXA 2017. Lecture Notes in Computer Science(), vol 10439. Springer, Cham.
+      https://doi.org/10.1007/978-3-319-64471-4_31
+
+    """
+    pass
+
+
 def _process_params(G, center, dim):
     # Some boilerplate code.
     import numpy as np
@@ -253,8 +326,8 @@ def shell_layout(G, nlist=None, rotate=None, scale=1, center=None, dim=2):
     for nodes in nlist:
         # Discard the last angle (endpoint=False) since 2*pi matches 0 radians
         theta = (
-            np.linspace(0, 2 * np.pi, len(nodes), endpoint=False, dtype=np.float32)
-            + first_theta
+                np.linspace(0, 2 * np.pi, len(nodes), endpoint=False, dtype=np.float32)
+                + first_theta
         )
         pos = radius * np.column_stack([np.cos(theta), np.sin(theta)]) + center
         npos.update(zip(nodes, pos))
@@ -265,7 +338,7 @@ def shell_layout(G, nlist=None, rotate=None, scale=1, center=None, dim=2):
 
 
 def bipartite_layout(
-    G, nodes, align="vertical", scale=1, center=None, aspect_ratio=4 / 3
+        G, nodes, align="vertical", scale=1, center=None, aspect_ratio=4 / 3
 ):
     """Position nodes in two straight lines.
 
@@ -344,17 +417,17 @@ def bipartite_layout(
 
 @np_random_state(10)
 def spring_layout(
-    G,
-    k=None,
-    pos=None,
-    fixed=None,
-    iterations=50,
-    threshold=1e-4,
-    weight="weight",
-    scale=1,
-    center=None,
-    dim=2,
-    seed=None,
+        G,
+        k=None,
+        pos=None,
+        fixed=None,
+        iterations=50,
+        threshold=1e-4,
+        weight="weight",
+        scale=1,
+        center=None,
+        dim=2,
+        seed=None,
 ):
     """Position nodes using Fruchterman-Reingold force-directed algorithm.
 
@@ -501,7 +574,7 @@ fruchterman_reingold_layout = spring_layout
 
 @np_random_state(7)
 def _fruchterman_reingold(
-    A, k=None, pos=None, fixed=None, iterations=50, threshold=1e-4, dim=2, seed=None
+        A, k=None, pos=None, fixed=None, iterations=50, threshold=1e-4, dim=2, seed=None
 ):
     # Position nodes in adjacency matrix A using Fruchterman-Reingold
     # Entry point for NetworkX graph is fruchterman_reingold_layout()
@@ -544,7 +617,7 @@ def _fruchterman_reingold(
         np.clip(distance, 0.01, None, out=distance)
         # displacement "force"
         displacement = np.einsum(
-            "ijk,ij->ik", delta, (k * k / distance**2 - A * distance / k)
+            "ijk,ij->ik", delta, (k * k / distance ** 2 - A * distance / k)
         )
         # update positions
         length = np.linalg.norm(displacement, axis=-1)
@@ -563,7 +636,7 @@ def _fruchterman_reingold(
 
 @np_random_state(7)
 def _sparse_fruchterman_reingold(
-    A, k=None, pos=None, fixed=None, iterations=50, threshold=1e-4, dim=2, seed=None
+        A, k=None, pos=None, fixed=None, iterations=50, threshold=1e-4, dim=2, seed=None
 ):
     # Position nodes in adjacency matrix A using Fruchterman-Reingold
     # Entry point for NetworkX graph is fruchterman_reingold_layout()
@@ -614,17 +687,17 @@ def _sparse_fruchterman_reingold(
             # difference between this row's node position and all others
             delta = (pos[i] - pos).T
             # distance between points
-            distance = np.sqrt((delta**2).sum(axis=0))
+            distance = np.sqrt((delta ** 2).sum(axis=0))
             # enforce minimum distance of 0.01
             distance = np.where(distance < 0.01, 0.01, distance)
             # the adjacency matrix row
             Ai = A.getrowview(i).toarray()  # TODO: revisit w/ sparse 1D container
             # displacement "force"
             displacement[:, i] += (
-                delta * (k * k / distance**2 - Ai * distance / k)
+                    delta * (k * k / distance ** 2 - Ai * distance / k)
             ).sum(axis=1)
         # update positions
-        length = np.sqrt((displacement**2).sum(axis=0))
+        length = np.sqrt((displacement ** 2).sum(axis=0))
         length = np.where(length < 0.01, 0.1, length)
         delta_pos = (displacement * t / length).T
         pos += delta_pos
@@ -636,7 +709,7 @@ def _sparse_fruchterman_reingold(
 
 
 def kamada_kawai_layout(
-    G, dist=None, pos=None, weight="weight", scale=1, center=None, dim=2
+        G, dist=None, pos=None, weight="weight", scale=1, center=None, dim=2
 ):
     """Position nodes using Kamada-Kawai path-length cost-function.
 
@@ -747,14 +820,14 @@ def _kamada_kawai_costfn(pos_vec, np, invdist, meanweight, dim):
     offset = nodesep * invdist - 1.0
     offset[np.diag_indices(nNodes)] = 0
 
-    cost = 0.5 * np.sum(offset**2)
+    cost = 0.5 * np.sum(offset ** 2)
     grad = np.einsum("ij,ij,ijk->ik", invdist, offset, direction) - np.einsum(
         "ij,ij,ijk->jk", invdist, offset, direction
     )
 
     # Additional parabolic term to encourage mean position to be near origin:
     sumpos = np.sum(pos_arr, axis=0)
-    cost += 0.5 * meanweight * np.sum(sumpos**2)
+    cost += 0.5 * meanweight * np.sum(sumpos ** 2)
     grad += meanweight * sumpos
 
     return (cost, grad.ravel())
@@ -856,7 +929,7 @@ def _spectral(A, dim=2):
 
     eigenvalues, eigenvectors = np.linalg.eig(L)
     # sort and keep smallest nonzero
-    index = np.argsort(eigenvalues)[1 : dim + 1]  # 0 index is zero eigenvalue
+    index = np.argsort(eigenvalues)[1: dim + 1]  # 0 index is zero eigenvalue
     return np.real(eigenvectors[:, index])
 
 
