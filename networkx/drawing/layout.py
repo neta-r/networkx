@@ -35,7 +35,7 @@ __all__ = [
 ]
 
 
-@nx.not_implemented_for("directed")
+# @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, node_weight=None, pos=None, iterations=50,
                                                                  threshold=1e-4, centrality_type=0):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
