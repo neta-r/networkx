@@ -37,7 +37,7 @@ __all__ = [
 
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, node_weight=None, pos=None, iterations=50,
-                                                                 threshold=1e-4, centrality_type=0):
+                                                                 threshold=1e-4, centrality_type=0, graph_type=0):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
     Gravitational Forces.
 
@@ -77,6 +77,9 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, node
 
     centrality_type: int optional (default=0)
         Centrality type for the Social gravity field used in the algorithm.
+
+    graph_type: int optional (default=0)
+        Graph type for chosing type of conversion from hyper-graph to graph (cycle/wheel/star/complete)
 
 
     Returns
