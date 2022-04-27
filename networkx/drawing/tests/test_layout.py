@@ -48,7 +48,6 @@ class TestLayout:
         nx.spiral_layout(G)
         nx.multipartite_layout(G)
         nx.kamada_kawai_layout(G)
-        nx.force_directed_hyper_graphs_using_social_and_gravity_scaling(G)
 
     def test_smoke_int(self):
         G = self.Gi
@@ -65,7 +64,6 @@ class TestLayout:
         nx.shell_layout(G)
         nx.spiral_layout(G)
         nx.kamada_kawai_layout(G)
-        nx.force_directed_hyper_graphs_using_social_and_gravity_scaling(G)
         nx.kamada_kawai_layout(G, dim=1)
         nx.kamada_kawai_layout(G, dim=3)
 
@@ -80,7 +78,6 @@ class TestLayout:
         nx.shell_layout(G)
         nx.spiral_layout(G)
         nx.kamada_kawai_layout(G)
-        nx.force_directed_hyper_graphs_using_social_and_gravity_scaling(G)
         nx.kamada_kawai_layout(G, dim=1)
         nx.kamada_kawai_layout(G, dim=3)
 
@@ -425,13 +422,4 @@ def test_multipartite_layout_nonnumeric_partition_labels():
     G.add_edges_from([(0, 2), (0, 3), (1, 2)])
     pos = nx.multipartite_layout(G)
     assert len(pos) == len(G)
-
-    def test_force_directed_hyper_graphs_using_social_and_gravity_scaling_layout(self):
-        import math
-
-        G = self.Gs
-        pytest.raises(ValueError, nx.force_directed_hyper_graphs_using_social_and_gravity_scaling, "hello")
-        pos = nx.force_directed_hyper_graphs_using_social_and_gravity_scaling(G)
-        has_nan = any(math.isnan(c) for coords in pos.values() for c in coords)
-        assert not has_nan, "values should not be nan"
 
