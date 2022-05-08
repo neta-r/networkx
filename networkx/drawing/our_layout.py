@@ -18,13 +18,12 @@ def rep_force(pos_u, pos_v, k):
         dx = pos_u[0] - pos_v[0]
         dy = pos_u[1] - pos_v[1]
         norm = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-        return (k ** 2) / (norm**2+0.0001) * (pos_v - pos_u)
+        return (k ** 2) / (norm ** 2 + 0.0001) * (pos_v - pos_u)
     except:
         print(pos_u)
         print(pos_v)
         print(pos_u[1] - pos_v[1])
         raise RuntimeError
-
 
 
 # @nx.not_implemented_for("directed")
@@ -111,24 +110,23 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=
     # randomize positions
     if pos is None:
         pos = np.random.rand(len(A), 2)
-        np.round(pos,2)
+        # np.round(pos, 2)
 
     else:
         pos = np.array(pos, dtype=np.dtype(float))
 
     # adjacent mapping
     # TODO: find a way to calculate the delta better
-    delta = 2.
+    delta = 1.15
     #     m = compute_mass_centrality(graph)
     m = np.array([v for v in nx.closeness_centrality(G).values()])
-    sigma = 0.1
-    i_max: float = 10.
+    sigma = 0.01
+    i_max: float = 5.
     gamma_t = 0
-    ep = 0.00000001
     xi = np.sum(pos, axis=0) / len(pos)
     attraction_equation = lambda pos_u, pos_v: ((np.linalg.norm(pos_u - pos_v, axis=-1) / k) * (pos_u - pos_v))
-    repulsion_equation = lambda pos_u, pos_v: ((k ** 2) / (np.linalg.norm(np.subtract(pos_u, pos_v)) ** 2 + ep)) * (
-                pos_v - pos_u)
+    repulsion_equation = lambda pos_u, pos_v: ((k * k) / (np.linalg.norm(pos_u - pos_v) ** 2)) * (
+            pos_v - pos_u)
     gravitation_equation = lambda pos_v, m_v: gamma_t * m_v * (xi - pos_v)
     for t in range(iterations):
         i = np.array([[0, 0]] * len(A), dtype=np.dtype(float))
@@ -150,8 +148,11 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=
             i[v] = attraction + repulsion + gravitation
         for v in range(0, len(pos)):
             pos[v] = pos[v] + sigma * np.array([(min(i_max, float(i[v][0]))), min(i_max, float(i[v][1]))])
-        if np.max(i) < delta:
+            # pos[v] = pos[v] + sigma * np.array([(min(i_max, float(i[v][0]))), min(i_max, float(i[v][1]))])
+            # print(pos[v])
+        if np.max(i)-np.min(i) < delta:
             gamma_t = gamma_t + 0.2
+            delta -= 0.1
         if gamma_t >= 2.5:
             break
     return pos
@@ -173,13 +174,14 @@ if __name__ == '__main__':
     g.add_edge(6, 8)
     # for i in nx.closeness_centrality(g):
     b = random.Random()
+    b.seed(1)
     g = nx.Graph()
     for i in range(100):
         g.add_edge(b.randint(0, 100), b.randint(0, 100))
     nx.draw_spring(g)
     plt.show()
     g.nodes.keys()
-    pos = nx.force_directed_hyper_graphs_using_social_and_gravity_scaling(g, 3)
+    pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
     pp = {}
     for i in range(len(pos)):
         pp[np.array(g.nodes)[i]] = np.array(pos[i])
