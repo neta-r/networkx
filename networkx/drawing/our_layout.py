@@ -19,68 +19,86 @@ def att(x, k):
     return x / k
 
 
-def fd(G: nx.Graph, seed: int, iterations: int = 50):
+def fd(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4):
     import numpy as np
     A = nx.to_numpy_array(G)
-    # k = math.sqrt(1 / len(A))
-    k = 20
+    k = math.sqrt(1 / len(A))
+    # k = 1
     np.random.seed(seed)
     pos = np.asarray(np.random.rand(len(A), 2))
+    # I = np.zeros(shape=(len(A), 2), dtype=float)
+    I = np.zeros(shape=(2, len(A)), dtype=float)
     t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * 0.1
+    old_t = t
     # simple cooling scheme.
     # linearly step down by dt on each iteration so last iteration is size dt.
     dt = t / float(iterations + 1)
-    # t = math.sqrt(len(A))
-    k_sqed = k * k
-    # repulsion force
-    # push the two nodes from each other
-    for iteration in range(iterations):
-        visited = np.zeros(shape=(len(A), 1))
-        I = np.zeros(shape=(len(A), 2), dtype=float)
-        for v in range(len(A)):
-            # repulsion
-            for u in range(len(A)):
+    gamma_t = 0
+    mass = [v for v in nx.closeness_centrality(G).values()]
+    center = (np.sum(pos, axis=0) / len(pos))
 
-                # Repulsion Force
-                if v != u:
-                    delta = pos[v] - pos[u]
-                    dist = np.linalg.norm(delta)
-                    I[v] += rep(dist, k) * delta
-                # attraction
-                if A[v][u] == 1:
-                    delta = pos[u] - pos[v]
-                    dist = np.linalg.norm(delta)
-                    I[v] += att(dist, k) * delta
-                #  Attraction Force
-        # attraction force
-        # every two nodes that are connected to each other are attracted to each other
-        # for v in g.get_all_v().values():
+    for iteration in range(iterations):
+        I *= 0
         for v in range(len(A)):
-            pos[v] += 0.1*np.clip(I[v], a_min=-10, a_max=10)
-        #     displacement_norm = np.linalg.norm(pos[v])
-        #     if displacement_norm == 1:
-        #         continue
-        #     capped_norm = min(t, displacement_norm)
-        #     capped = pos[v] / displacement_norm * capped_norm
-        #     pos[v] += capped
-        # if t > 0.01:
-        #     t *= 0.85
+            delta = (pos[v] - pos).T
+            distance = np.sqrt((delta ** 2).sum(axis=0))
+            distance = np.where(distance < 0.01, 0.01, distance)
+            Ai = A[v]
+            # displacement "force"
+            I[:, v] += (
+                               delta * (k * k / distance ** 2 - Ai * distance / k)
+                       ).sum(axis=1) + gamma_t * mass[v] * (center - pos[v])
+        length = np.sqrt((I ** 2).sum(axis=0))
+        length = np.where(length < 0.01, 0.1, length)
+        delta_pos = (I * t / length).T
+        pos += delta_pos
+        # cool temperature
+        t -= dt
+        if gamma_t > 125:
+            print('gamma')
+            break
+        if (np.linalg.norm(delta_pos) / len(A)) < threshold:
+            print("adasds")
+            print(iteration)
+            threshold /= 3
+            # break
+            gamma_t += 6 * round(iteration / 200)
+            # threshold *= 10
+            # break
+            # gamma_t += 0.2
+            # pp = {}
+            # for i in range(len(pos)):
+            #     pp[np.array(g.nodes)[i]] = np.array(pos[i])
+            # nx.draw(g, pp, node_size=70)
+            # # print(np.zeros(shape=(5, 2), dtype=float))
+            # plt.show()
+            # t = old_t
+        iteration += 1
+        #     repulsion
+        #     for u in range(len(A)):
+        #
+        #         delta = pos[v] - pos[u]
+        #         # Repulsion Force
+        #         if v != u:
+        #             dist = np.linalg.norm(delta)
+        #             I[v] += rep(dist, k) * delta
+        #         # attraction
+        #         if A[v][u] == 1:
+        #             dist = np.linalg.norm(delta)
+        #             I[v] -= att(dist, k) * delta
+        # length = np.sqrt((I ** 2).sum(axis=0))
+        # length = np.where(length < 0.01, 0.1, length)
+        # delta_pos = I*t/length
+        # pos += delta_pos
+        # t -= dt
+        # if (np.linalg.norm(delta_pos) / len(A)) < threshold:
+        #     break
+
+        #     pos[v] += 0.1 * np.clip(I[v], a_min=-10, a_max=10)
+    print(iteration)
     return pos
 
-    for v in g.get_all_v().values():
-        displacement_norm = np.linalg.norm([v.dx, v.dy])
-        if displacement_norm < 1:
-            continue
-        capped_norm = min(t, displacement_norm)
-        capped = [v.dx / displacement_norm * capped_norm, v.dy / displacement_norm * capped_norm]
-        x = v.get_pos()[0] + capped[0]
-        y = v.get_pos()[1] + capped[1]
-        v.set_pos((x, y, 0))
 
-    if t > 1.5:
-        t *= 0.85
-    else:
-        t = 1.5
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=None, iterations=50,
                                                                  threshold=1e-4, centrality_type=0, graph_type=0,
@@ -205,7 +223,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=
             pos[v] = pos[v] + sigma * np.array([(min(i_max, float(i[v][0]))), min(i_max, float(i[v][1]))])
             # pos[v] = pos[v] + sigma * np.array([(min(i_max, float(i[v][0]))), min(i_max, float(i[v][1]))])
             # print(pos[v])
-        if np.max(i)-np.min(i) < delta:
+        if np.max(i) - np.min(i) < delta:
             gamma_t = gamma_t + 0.2
             delta -= 0.1
         if gamma_t >= 2.5:
@@ -230,19 +248,38 @@ if __name__ == '__main__':
     # # for i in nx.closeness_centrality(g):
     # b = random.Random()
     # b.seed(1)
-    # g = nx.Graph()
-    # for i in range(100):
-    #     g.add_edge(b.randint(0, 100), b.randint(0, 100))
+    # # g = nx.Graph()
+    # while g.edges.__len__() != 40:
+    #     d = b.randint(0, 30)
+    #     a = b.randint(0, 30)
+    #     if a != d and g.has_edge(a, d) is False:
+    #         g.add_edge(a, d)
     # plt.show()
     # g.nodes.keys()
-    g = nx.random_tree(70, 1)
-    nx.draw_spring(g)
+    g: nx.Graph = nx.random_tree(70,1)
+    f: list[nx.Graph] = []
+    for i in range(1, 5):
+        f.append(nx.random_tree(70, i))
+        # pos_nx = nx.spring_layout(f[i-1], iterations=700)
+        # nx.draw(f[i-1], pos_nx, node_size=70)
+        # # nx.draw_spring
+        # plt.show()
+
+
+    for i in range(1, 5):
+        for j in f[i-1].edges:
+            g.add_edge(j[0]+70*(i+3)+1, j[1]+70*(i+3)+1)
+
+    pos_nx = nx.spring_layout(g, iterations=700)
+    nx.draw(g, pos_nx, node_size=70)
+    # nx.draw_spring
     plt.show()
-    pos = fd(g, 1, iterations=400)
+    pos = fd(g, 1, iterations=1000)
+    pos = nx.rescale_layout(pos)
     # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
     pp = {}
     for i in range(len(pos)):
         pp[np.array(g.nodes)[i]] = np.array(pos[i])
-    nx.draw(g, pp)
+    nx.draw(g, pp, node_size=50)
     # print(np.zeros(shape=(5, 2), dtype=float))
     plt.show()
