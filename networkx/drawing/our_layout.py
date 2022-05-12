@@ -10,22 +10,61 @@ __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
 ]
 
+def fd(G):
+    import numpy as np
+    A = nx.to_numpy_array(G)
+    k = math.sqrt(1/len(A))
 
-def rep_force(pos_u, pos_v, k):
-    try:
-        print(pos_u)
-        print(pos_v)
-        dx = pos_u[0] - pos_v[0]
-        dy = pos_u[1] - pos_v[1]
-        norm = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-        return (k ** 2) / (norm ** 2 + 0.0001) * (pos_v - pos_u)
-    except:
-        print(pos_u)
-        print(pos_v)
-        print(pos_u[1] - pos_v[1])
-        raise RuntimeError
+    # math.sqrt(1 / (g.v_size()))
+    t = math.sqrt(g.v_size())
+    k_sqed = k * k
+    # repulsion force
+    # push the two nodes from each other
+    nodes = []
+    for v in g.get_all_v().values():
+        # Repulsion Force
+        for u in g.get_all_v().values():
+            if v != u:
+                delta = [v.get_pos()[0] - u.get_pos()[0], v.get_pos()[1] - u.get_pos()[1]]
+                dist = np.linalg.norm(delta)
+                if dist <= 1000 and nodes.__contains__(u.get_key()) is False:
+                    rep = k_sqed / dist
+                    v.dx += delta[0] / dist * rep
+                    u.dx -= delta[0] / dist * rep
+                    v.dy += delta[1] / dist * rep
+                    u.dy -= delta[1] / dist * rep
+        #  Attraction Force
+        for e in g.all_out_edges_of_node(v.get_key()):
+            u = g.get_all_v().get(e)
+            delta = [v.get_pos()[0] - u.get_pos()[0], v.get_pos()[1] - u.get_pos()[1]]
+            dist = np.linalg.norm(delta)
+            if dist == 0:
+                continue
+            att = dist * dist / k
+            v.dx -= delta[0] / dist * att
+            u.dx += delta[0] / dist * att
+            v.dy -= delta[1] / dist * att
+            u.dy += delta[1] / dist * att
+        nodes.append(v.get_key())
 
+    # attraction force
+    # every two nodes that are connected to each other are attracted to each other
+    # for v in g.get_all_v().values():
 
+    for v in g.get_all_v().values():
+        displacement_norm = np.linalg.norm([v.dx, v.dy])
+        if displacement_norm < 1:
+            continue
+        capped_norm = min(t, displacement_norm)
+        capped = [v.dx / displacement_norm * capped_norm, v.dy / displacement_norm * capped_norm]
+        x = v.get_pos()[0] + capped[0]
+        y = v.get_pos()[1] + capped[1]
+        v.set_pos((x, y, 0))
+
+    if t > 1.5:
+        t *= 0.85
+    else:
+        t = 1.5
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=None, iterations=50,
                                                                  threshold=1e-4, centrality_type=0, graph_type=0,
