@@ -10,46 +10,62 @@ __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
 ]
 
-def fd(G):
+
+def rep(x, k):
+    return k ** 2 / x ** 2
+
+
+def att(x, k):
+    return x / k
+
+
+def fd(G: nx.Graph, seed: int, iterations: int = 50):
     import numpy as np
     A = nx.to_numpy_array(G)
-    k = math.sqrt(1/len(A))
-
-    # math.sqrt(1 / (g.v_size()))
-    t = math.sqrt(g.v_size())
+    # k = math.sqrt(1 / len(A))
+    k = 20
+    np.random.seed(seed)
+    pos = np.asarray(np.random.rand(len(A), 2))
+    t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * 0.1
+    # simple cooling scheme.
+    # linearly step down by dt on each iteration so last iteration is size dt.
+    dt = t / float(iterations + 1)
+    # t = math.sqrt(len(A))
     k_sqed = k * k
     # repulsion force
     # push the two nodes from each other
-    nodes = []
-    for v in g.get_all_v().values():
-        # Repulsion Force
-        for u in g.get_all_v().values():
-            if v != u:
-                delta = [v.get_pos()[0] - u.get_pos()[0], v.get_pos()[1] - u.get_pos()[1]]
-                dist = np.linalg.norm(delta)
-                if dist <= 1000 and nodes.__contains__(u.get_key()) is False:
-                    rep = k_sqed / dist
-                    v.dx += delta[0] / dist * rep
-                    u.dx -= delta[0] / dist * rep
-                    v.dy += delta[1] / dist * rep
-                    u.dy -= delta[1] / dist * rep
-        #  Attraction Force
-        for e in g.all_out_edges_of_node(v.get_key()):
-            u = g.get_all_v().get(e)
-            delta = [v.get_pos()[0] - u.get_pos()[0], v.get_pos()[1] - u.get_pos()[1]]
-            dist = np.linalg.norm(delta)
-            if dist == 0:
-                continue
-            att = dist * dist / k
-            v.dx -= delta[0] / dist * att
-            u.dx += delta[0] / dist * att
-            v.dy -= delta[1] / dist * att
-            u.dy += delta[1] / dist * att
-        nodes.append(v.get_key())
+    for iteration in range(iterations):
+        visited = np.zeros(shape=(len(A), 1))
+        I = np.zeros(shape=(len(A), 2), dtype=float)
+        for v in range(len(A)):
+            # repulsion
+            for u in range(len(A)):
 
-    # attraction force
-    # every two nodes that are connected to each other are attracted to each other
-    # for v in g.get_all_v().values():
+                # Repulsion Force
+                if v != u:
+                    delta = pos[v] - pos[u]
+                    dist = np.linalg.norm(delta)
+                    I[v] += rep(dist, k) * delta
+                # attraction
+                if A[v][u] == 1:
+                    delta = pos[u] - pos[v]
+                    dist = np.linalg.norm(delta)
+                    I[v] += att(dist, k) * delta
+                #  Attraction Force
+        # attraction force
+        # every two nodes that are connected to each other are attracted to each other
+        # for v in g.get_all_v().values():
+        for v in range(len(A)):
+            pos[v] += 0.1*np.clip(I[v], a_min=-10, a_max=10)
+        #     displacement_norm = np.linalg.norm(pos[v])
+        #     if displacement_norm == 1:
+        #         continue
+        #     capped_norm = min(t, displacement_norm)
+        #     capped = pos[v] / displacement_norm * capped_norm
+        #     pos[v] += capped
+        # if t > 0.01:
+        #     t *= 0.85
+    return pos
 
     for v in g.get_all_v().values():
         displacement_norm = np.linalg.norm([v.dx, v.dy])
@@ -200,27 +216,30 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=
 if __name__ == '__main__':
     import numpy as np
 
-    g = nx.Graph()
-    g.add_edge(0, 1)
-    g.add_edge(2, 3)
-    g.add_edge(4, 3)
-    g.add_edge(2, 1)
-    g.add_edge(0, 4)
-    g.add_edge(4, 5)
-    g.add_edge(6, 7)
-    # g.add_edge(5,6)
-    g.add_edge(7, 8)
-    g.add_edge(6, 8)
-    # for i in nx.closeness_centrality(g):
-    b = random.Random()
-    b.seed(1)
-    g = nx.Graph()
-    for i in range(100):
-        g.add_edge(b.randint(0, 100), b.randint(0, 100))
+    # g = nx.Graph()
+    # g.add_edge(0, 1)
+    # g.add_edge(2, 3)
+    # g.add_edge(4, 3)
+    # g.add_edge(2, 1)
+    # g.add_edge(0, 4)
+    # g.add_edge(4, 5)
+    # g.add_edge(6, 7)
+    # # g.add_edge(5,6)
+    # g.add_edge(7, 8)
+    # g.add_edge(6, 8)
+    # # for i in nx.closeness_centrality(g):
+    # b = random.Random()
+    # b.seed(1)
+    # g = nx.Graph()
+    # for i in range(100):
+    #     g.add_edge(b.randint(0, 100), b.randint(0, 100))
+    # plt.show()
+    # g.nodes.keys()
+    g = nx.random_tree(70, 1)
     nx.draw_spring(g)
     plt.show()
-    g.nodes.keys()
-    pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
+    pos = fd(g, 1, iterations=400)
+    # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
     pp = {}
     for i in range(len(pos)):
         pp[np.array(g.nodes)[i]] = np.array(pos[i])
