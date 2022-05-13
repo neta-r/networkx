@@ -82,15 +82,13 @@ def convex_pos(hull):
     for x in hull.points:
         m = (x[1]-center[1]) / (x[0]-center[0])
         b = center[1] - m * center[0]
-        sigma = 0.005
-        if m > 20:
-            sigma = 0.0003
-        y_minus = m * (x[0] - sigma) + b
-        if not in_hull((x[0] - sigma, y_minus), hull):
-            tmp_pos.append((x[0] - sigma, y_minus))
+        dist = 0.008
+        x0 = x[0]-dist*(math.sqrt(1/(1+m**2)))
+        if not in_hull((x0, m*x0+b), hull):
+            tmp_pos.append((x0, m*x0+b))
         else:
-            y_plus = m * (x[0] + sigma) + b
-            tmp_pos.append((x[0] + sigma, y_plus))
+            x0 = x[0]+dist*(math.sqrt(1/(1+m**2)))
+            tmp_pos.append((x0, m*x0+b))
     return np.array(tmp_pos)
 
 
