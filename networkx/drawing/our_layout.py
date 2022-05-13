@@ -68,6 +68,12 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
     return pos
 
 
+def angle_between(x0, x1, y0, y1):
+    xDiff = x1 - x0
+    yDiff = y1 - y0
+    return math.degrees(math.atan2(yDiff, xDiff))
+
+
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_layout.hypergraph,
                                                                  iterations=50, threshold=70e-4, centrality=None,
@@ -141,6 +147,8 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     from scipy.spatial import ConvexHull
     from scipy.interpolate import splprep
     from scipy.interpolate import splev
+    from matplotlib.patches import Ellipse
+    import math
 
     if graph_type is None:
         graph_type = hypergraph_layout.complete_algorithm
@@ -154,24 +162,38 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         indexes = []
         for v in ei.vertices:
             indexes.append(np.where(G.vertices == v)[0][0])
-        if len(indexes) <= 2:
-            ax.plot(pos[indexes, 0], pos[indexes, 1], 'k-', color='red')
-            continue
-        hull = ConvexHull(pos[indexes])
-        # ax.plot(pos[:, 0], pos[:, 1], 'o')
-        # calculate center of hull
-        # take two x calculate y -> check if (x,y) is in the hull
-        # for simplex in hull.simplices:
-        tmp_pos = np.array(hull.points)
-        tmp_pos = np.append(tmp_pos, [[0, 0]], axis=0)
+        if len(indexes) == 2:
+            x0 = pos[indexes][0][0]
+            y0 = pos[indexes][0][1]
+            x1 = pos[indexes][1][0]
+            y1 = pos[indexes][1][1]
+            width = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2) + 0.03
+            center = ((x0 + x1) / 2, (y0 + y1) / 2)
+            angle = angle_between(x0, x1, y0, y1)
+            ellipse = Ellipse(center, 0.020, width, angle=angle+90, fill=False, color='red')
+            ax.set_aspect(1)
+            ax.add_artist(ellipse)
+            # plt.show()
+            # ax.plot(pos[indexes, 0], pos[indexes, 1], 'k-', color='red')
+        elif len(indexes) == 1:
+            draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), 0.010, fill=False, color='red')
+            ax.set_aspect(1)
+            ax.add_artist(draw_circle)
+        else:
+            hull = ConvexHull(pos[indexes])
+            # ax.plot(pos[:, 0], pos[:, 1], 'o')
+            # calculate center of hull
+            # take two x calculate y -> check if (x,y) is in the hull
+            # for simplex in hull.simplices:
+            tmp_pos = np.array(hull.points)
+            tmp_pos = np.append(tmp_pos, [[0, 0]], axis=0)
 
+            tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
+            u_new = np.linspace(u.min(), u.max(), 1000)
+            x_new, y_new = splev(u_new, tck, der=0)
 
-        tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
-        u_new = np.linspace(u.min(), u.max(), 1000)
-        x_new, y_new = splev(u_new, tck, der=0)
-
-        ax.plot(x_new, y_new, color='red', zorder=1)
-        # plt.show()
+            ax.plot(x_new, y_new, color='red', zorder=1)
+            # plt.show()
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
     plt.show()
@@ -223,20 +245,21 @@ if __name__ == '__main__':
     v5 = 5
     v6 = 6
     E1 = hyperedge([v1, v2, v3, v4])
-    E2 = hyperedge([v3, v4])
+    E2 = hyperedge([v2, v5])
     E3 = hyperedge([v1, v5, v6])
-    G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2, E3])
+    E4 = hyperedge([v1])
+    G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2, E3, E4])
     force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.star_algorithm)
-    pos_nx = nx.spring_layout(g, iterations=700)
-    nx.draw(g, pos_nx, node_size=70)
-    # nx.draw_spring
-    plt.show()
-    pos = force_directed(g, 1, iterations=1000)
-    pos = nx.rescale_layout(pos)
-    # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
-    pp = {}
-    for i in range(len(pos)):
-        pp[np.array(g.nodes)[i]] = np.array(pos[i])
-    nx.draw(g, pp, node_size=50)
-    # print(np.zeros(shape=(5, 2), dtype=float))
-    plt.show()
+    # pos_nx = nx.spring_layout(g, iterations=700)
+    # nx.draw(g, pos_nx, node_size=70)
+    # # nx.draw_spring
+    # plt.show()
+    # pos = force_directed(g, 1, iterations=1000)
+    # pos = nx.rescale_layout(pos)
+    # # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
+    # pp = {}
+    # for i in range(len(pos)):
+    #     pp[np.array(g.nodes)[i]] = np.array(pos[i])
+    # nx.draw(g, pp, node_size=50)
+    # # print(np.zeros(shape=(5, 2), dtype=float))
+    # plt.show()
