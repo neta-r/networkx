@@ -57,16 +57,12 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
         # cool temperature
         t -= dt
         if gamma_t > 125:
-            print('gamma')
             break
         if (np.linalg.norm(delta_pos) / len(A)) < threshold:
-            print("adasds")
-            print(iteration)
             threshold /= 3
             # break
             gamma_t += 6 * round(iteration / 200)
         iteration += 1
-    print(iteration)
     return pos
 
 
@@ -80,15 +76,15 @@ def convex_pos(hull):
     tmp_pos = []
     center = np.divide(np.sum(hull.points, axis=0), len(hull.points))
     for x in hull.points:
-        m = (x[1]-center[1]) / (x[0]-center[0])
+        m = (x[1] - center[1]) / (x[0] - center[0])
         b = center[1] - m * center[0]
         dist = 0.008
-        x0 = x[0]-dist*(math.sqrt(1/(1+m**2)))
-        if not in_hull((x0, m*x0+b), hull):
-            tmp_pos.append((x0, m*x0+b))
+        x0 = x[0] - dist * (math.sqrt(1 / (1 + m ** 2)))
+        if not in_hull((x0, m * x0 + b), hull):
+            tmp_pos.append((x0, m * x0 + b))
         else:
-            x0 = x[0]+dist*(math.sqrt(1/(1+m**2)))
-            tmp_pos.append((x0, m*x0+b))
+            x0 = x[0] + dist * (math.sqrt(1 / (1 + m ** 2)))
+            tmp_pos.append((x0, m * x0 + b))
     return np.array(tmp_pos)
 
 
@@ -96,6 +92,16 @@ def angle_between(x0, x1, y0, y1):
     xDiff = x1 - x0
     yDiff = y1 - y0
     return math.degrees(math.atan2(yDiff, xDiff))
+
+
+def random_color():
+    import random
+    red = random.random()
+    green = random.random()
+    blue = random.random()
+    if red < 0.1 or green < 0.1 or blue < 0.1:
+        return random_color()
+    return [red, green, blue]
 
 
 # @nx.not_implemented_for("directed")
@@ -194,11 +200,11 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             width = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2) + 0.03
             center = ((x0 + x1) / 2, (y0 + y1) / 2)
             angle = angle_between(x0, x1, y0, y1)
-            ellipse = Ellipse(center, 0.020, width, angle=angle + 90, fill=False, color='red')
+            ellipse = Ellipse(center, 0.020, width, angle=angle + 90, fill=False, color=random_color())
             ax.set_aspect(1)
             ax.add_artist(ellipse)
         elif len(indexes) == 1:
-            draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), 0.010, fill=False, color='red')
+            draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), 0.010, fill=False, color=random_color())
             ax.set_aspect(1)
             ax.add_artist(draw_circle)
         else:
@@ -210,7 +216,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             u_new = np.linspace(u.min(), u.max(), 1000)
             x_new, y_new = splev(u_new, tck, der=0)
 
-            ax.plot(x_new, y_new, color='red', zorder=1)
+            ax.plot(x_new, y_new, color=random_color(), zorder=1)
             # plt.show()
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
