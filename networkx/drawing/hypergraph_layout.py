@@ -1,24 +1,22 @@
 import networkx as nx
 import numpy as np
 
-
-class vertex:
-    def __init__(self, id, x=None, y=None):
-        self.id = id
-        self.x = x
-        self.y = y
-
-    def pos(self):
-        return self.x, self.y
+__all__ = [
+    "hypergraph",
+    "complete_algorithm",
+    "cycle_algorithm",
+    "star_algorithm",
+    "wheel_algorithm"
+]
 
 
 class hyperedge:
-    def __init__(self, vertices: list[vertex]):
+    def __init__(self, vertices: list[int]):
         self.vertices = np.array(vertices)
 
 
 class hypergraph:
-    def __init__(self, vertices: list[vertex], hyperedges: list[hyperedge]):
+    def __init__(self, vertices: list[int], hyperedges: list[hyperedge]):
         self.vertices = np.array(vertices)
         self.hyperedges = np.array(hyperedges)
 
@@ -51,12 +49,7 @@ def star_algorithm(h_graph: hypergraph):
     for v in h_graph.vertices:
         g.add_node(v)
     for i, edge in enumerate(h_graph.hyperedges):
-        center = np.array([0, 0])
-        for v in edge.vertices:
-            center += np.array([v.x, v.y])
-        center = center * (1 / len(edge.vertices))
-        center_name = "center " + str(i)
-        center_vertex = vertex(center_name, center[0], center[1])
+        center_vertex = f'center {i}'
         for v in edge.vertices:
             g.add_edge(v, center_vertex)
     return g
@@ -71,14 +64,14 @@ def wheel_algorithm(h_graph: hypergraph):
 
 def print_edges(g: nx.Graph):
     for e in g.edges:
-        print(f"{e[0].id},{e[1].id}")
+        print(f"{e[0]},{e[1]}")
 
 
 if __name__ == '__main__':
-    v1 = vertex(1, 1, 1)
-    v2 = vertex(2, 1, -1)
-    v3 = vertex(3, -1, 1)
-    v4 = vertex(4, -1, -1)
+    v1 = 1
+    v2 = 2
+    v3 = 3
+    v4 = 4
     E1 = hyperedge([v1, v2, v3, v4])
     E2 = hyperedge([v3, v4])
     E3 = hyperedge([v1])

@@ -1,10 +1,10 @@
 import math
-import random
 
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from networkx.utils import np_random_state
+from networkx.drawing import hypergraph_layout
+from networkx.drawing.hypergraph_layout import hyperedge, hypergraph
 
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
@@ -19,22 +19,22 @@ def att(x, k):
     return x / k
 
 
-def fd(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4):
+def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None):
     import numpy as np
     A = nx.to_numpy_array(G)
     k = math.sqrt(1 / len(A))
-    # k = 1
     np.random.seed(seed)
     pos = np.asarray(np.random.rand(len(A), 2))
-    # I = np.zeros(shape=(len(A), 2), dtype=float)
     I = np.zeros(shape=(2, len(A)), dtype=float)
     t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * 0.1
-    old_t = t
     # simple cooling scheme.
     # linearly step down by dt on each iteration so last iteration is size dt.
     dt = t / float(iterations + 1)
     gamma_t = 0
-    mass = [v for v in nx.closeness_centrality(G).values()]
+    if centrality is None:
+        mass = [v for v in nx.closeness_centrality(G).values()]
+    else:
+        mass = [v for v in centrality(G).values()]
     center = (np.sum(pos, axis=0) / len(pos))
 
     for iteration in range(iterations):
@@ -63,46 +63,15 @@ def fd(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4):
             threshold /= 3
             # break
             gamma_t += 6 * round(iteration / 200)
-            # threshold *= 10
-            # break
-            # gamma_t += 0.2
-            # pp = {}
-            # for i in range(len(pos)):
-            #     pp[np.array(g.nodes)[i]] = np.array(pos[i])
-            # nx.draw(g, pp, node_size=70)
-            # # print(np.zeros(shape=(5, 2), dtype=float))
-            # plt.show()
-            # t = old_t
         iteration += 1
-        #     repulsion
-        #     for u in range(len(A)):
-        #
-        #         delta = pos[v] - pos[u]
-        #         # Repulsion Force
-        #         if v != u:
-        #             dist = np.linalg.norm(delta)
-        #             I[v] += rep(dist, k) * delta
-        #         # attraction
-        #         if A[v][u] == 1:
-        #             dist = np.linalg.norm(delta)
-        #             I[v] -= att(dist, k) * delta
-        # length = np.sqrt((I ** 2).sum(axis=0))
-        # length = np.where(length < 0.01, 0.1, length)
-        # delta_pos = I*t/length
-        # pos += delta_pos
-        # t -= dt
-        # if (np.linalg.norm(delta_pos) / len(A)) < threshold:
-        #     break
-
-        #     pos[v] += 0.1 * np.clip(I[v], a_min=-10, a_max=10)
     print(iteration)
     return pos
 
 
 # @nx.not_implemented_for("directed")
-def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=None, iterations=50,
-                                                                 threshold=1e-4, centrality_type=0, graph_type=0,
-                                                                 seed=1):
+def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_layout.hypergraph,
+                                                                 iterations=50, threshold=70e-4, centrality=None,
+                                                                 graph_type=None):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
     Gravitational Forces.
 
@@ -168,66 +137,42 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G, k=None, pos=
       https://doi.org/10.1007/978-3-319-64471-4_31
 
     """
+    import matplotlib.pyplot as plt
+    from scipy.spatial import ConvexHull
+    from scipy.interpolate import splprep
+    from scipy.interpolate import splev
 
-    # p is a list that represent the current position of a vertex
-    # m is a list that represent the mass of a vertex
-    # i is a list that represent the movement direction
-    # graph is the initial graph (boolean 2D array that represent edges)
-    from itertools import count
-    import numpy as np
-
-    A = nx.to_numpy_array(G)
-
-    if k is None:
-        k = np.sqrt(1.0 / len(A))
-    # randomize positions
-    if pos is None:
-        pos = np.random.rand(len(A), 2)
-        # np.round(pos, 2)
-
-    else:
-        pos = np.array(pos, dtype=np.dtype(float))
-
-    # adjacent mapping
-    # TODO: find a way to calculate the delta better
-    delta = 1.15
-    #     m = compute_mass_centrality(graph)
-    m = np.array([v for v in nx.closeness_centrality(G).values()])
-    sigma = 0.01
-    i_max: float = 5.
-    gamma_t = 0
-    xi = np.sum(pos, axis=0) / len(pos)
-    attraction_equation = lambda pos_u, pos_v: ((np.linalg.norm(pos_u - pos_v, axis=-1) / k) * (pos_u - pos_v))
-    repulsion_equation = lambda pos_u, pos_v: ((k * k) / (np.linalg.norm(pos_u - pos_v) ** 2)) * (
-            pos_v - pos_u)
-    gravitation_equation = lambda pos_v, m_v: gamma_t * m_v * (xi - pos_v)
-    for t in range(iterations):
-        i = np.array([[0, 0]] * len(A), dtype=np.dtype(float))
-
-        # TODO: check if the calculation of xi need to be done outside of the main loop or in it
-        for v in range(len(pos)):
-            repulsion, attraction, gravitation = 0, 0, 0
-            for u in range(len(pos)):
-                if v == u:
-                    continue
-                # dist = pos[u] - pos[v]
-                # sub = pos[u] - pos[v]
-                # repulsion = repulsion + (k ** 2 / (dist ** 2)) * sub
-                repulsion = repulsion + repulsion_equation(pos[u], pos[v])
-                if A[v][u] == 1.:  # there is an edge
-                    attraction = attraction + attraction_equation(pos[u], pos[v])
-                # gravitation = gravitation + gamma_t * m[v] * (xi - pos[v])
-                gravitation = gravitation + gravitation_equation(pos[v], m[v])
-            i[v] = attraction + repulsion + gravitation
-        for v in range(0, len(pos)):
-            pos[v] = pos[v] + sigma * np.array([(min(i_max, float(i[v][0]))), min(i_max, float(i[v][1]))])
-            # pos[v] = pos[v] + sigma * np.array([(min(i_max, float(i[v][0]))), min(i_max, float(i[v][1]))])
-            # print(pos[v])
-        if np.max(i) - np.min(i) < delta:
-            gamma_t = gamma_t + 0.2
-            delta -= 0.1
-        if gamma_t >= 2.5:
-            break
+    if graph_type is None:
+        graph_type = hypergraph_layout.complete_algorithm
+    g: nx.Graph = graph_type(G)
+    pos = force_directed(g, 1, iterations, threshold, centrality)
+    if graph_type is hypergraph_layout.star_algorithm or graph_type is hypergraph_layout.wheel_algorithm:
+        pos = pos[:len(pos) - len(G.hyperedges)]
+    fig, ax = plt.subplots()
+    ax.scatter(pos[:, 0], pos[:, 1], zorder=2)
+    for ei in G.hyperedges:
+        indexes = []
+        for v in ei.vertices:
+            indexes.append(np.where(G.vertices == v)[0][0])
+        if len(indexes) <= 2:
+            ax.plot(pos[indexes, 0], pos[indexes, 1], 'k-', color='red')
+            continue
+        hull = ConvexHull(pos[indexes])
+        ax.plot(pos[:, 0], pos[:, 1], 'o')
+        # calculate center of hull
+        # take two x calculate y -> check if (x,y) is in the hull
+        for simplex in hull.simplices:
+            # tck, u = splprep(k.points.T, u=None, s=0.0, per=1)
+            # u_new = np.linspace(u.min(), u.max(), 1000)
+            # x_new, y_new = splev(u_new, tck, der=0)
+            #
+            # ax.plot(k.points[simplex, 0], k.points[simplex, 1], 'ro')
+            # ax.plot(x_new, y_new)
+            # plt.show()
+            ax.plot(hull.points[simplex, 0], hull.points[simplex, 1], 'k-')
+    for i, txt in enumerate(G.vertices):
+        ax.annotate(txt, pos[i], color='blue')
+    plt.show()
     return pos
 
 
@@ -256,25 +201,35 @@ if __name__ == '__main__':
     #         g.add_edge(a, d)
     # plt.show()
     # g.nodes.keys()
-    g: nx.Graph = nx.random_tree(70,1)
-    f: list[nx.Graph] = []
-    for i in range(1, 5):
-        f.append(nx.random_tree(70, i))
-        # pos_nx = nx.spring_layout(f[i-1], iterations=700)
-        # nx.draw(f[i-1], pos_nx, node_size=70)
-        # # nx.draw_spring
-        # plt.show()
-
-
-    for i in range(1, 5):
-        for j in f[i-1].edges:
-            g.add_edge(j[0]+70*(i+3)+1, j[1]+70*(i+3)+1)
-
+    g: nx.Graph = nx.random_regular_graph(3, 90, 1)
+    # g: nx.Graph = nx.random_tree(70,1)
+    # f: list[nx.Graph] = []
+    # for i in range(1, 5):
+    #     f.append(nx.random_tree(70, i))
+    # pos_nx = nx.spring_layout(f[i-1], iterations=700)
+    # nx.draw(f[i-1], pos_nx, node_size=70)
+    # # nx.draw_spring
+    # plt.show()
+    #
+    # for i in range(1, 5):
+    #     for j in f[i-1].edges:
+    #         g.add_edge(j[0]+70*(i+3)+1, j[1]+70*(i+3)+1)
+    v1 = 1
+    v2 = 2
+    v3 = 3
+    v4 = 4
+    v5 = 5
+    v6 = 6
+    E1 = hyperedge([v1, v2, v3, v4])
+    E2 = hyperedge([v3, v4])
+    E3 = hyperedge([v1, v5, v6])
+    G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2, E3])
+    force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.star_algorithm)
     pos_nx = nx.spring_layout(g, iterations=700)
     nx.draw(g, pos_nx, node_size=70)
     # nx.draw_spring
     plt.show()
-    pos = fd(g, 1, iterations=1000)
+    pos = force_directed(g, 1, iterations=1000)
     pos = nx.rescale_layout(pos)
     # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
     pp = {}
