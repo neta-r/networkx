@@ -158,18 +158,16 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             ax.plot(pos[indexes, 0], pos[indexes, 1], 'k-', color='red')
             continue
         hull = ConvexHull(pos[indexes])
-        ax.plot(pos[:, 0], pos[:, 1], 'o')
+        # ax.plot(pos[:, 0], pos[:, 1], 'o')
         # calculate center of hull
         # take two x calculate y -> check if (x,y) is in the hull
         for simplex in hull.simplices:
-            # tck, u = splprep(k.points.T, u=None, s=0.0, per=1)
-            # u_new = np.linspace(u.min(), u.max(), 1000)
-            # x_new, y_new = splev(u_new, tck, der=0)
-            #
-            # ax.plot(k.points[simplex, 0], k.points[simplex, 1], 'ro')
-            # ax.plot(x_new, y_new)
-            # plt.show()
-            ax.plot(hull.points[simplex, 0], hull.points[simplex, 1], 'k-')
+            tck, u = splprep(hull.points.T, u=None, s=0.0, per=1)
+            u_new = np.linspace(u.min(), u.max(), 1000)
+            x_new, y_new = splev(u_new, tck, der=0)
+
+            ax.plot(x_new, y_new, color='red', zorder=1)
+            plt.show()
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
     plt.show()
