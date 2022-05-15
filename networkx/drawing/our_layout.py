@@ -58,7 +58,29 @@ def att(x, k):
 
 def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6):
     """
-    Example
+
+    Parameters
+    ----------
+    G: nx.Graph
+     for easy calculations and usage of networkx functions
+    seed: int
+        Randomize the initial positions of nodes for consistent results
+    iterations: int (default=50)
+        maximum number of iterations the algorithm is allows to used
+    threshold: float optional (default = 70e-4)
+        Threshold for relative error in node position changes.
+        The iteration stops if the error is below this threshold
+    centrality: nx function (default = None)
+        nx function to calculate the "mass" of each node
+    gravity: int (default = 6)
+        the amount to increase the gravity param in forces calculations
+
+    Returns
+    -------
+    pos : list[float]
+        List with the positions of all of the nodes
+
+     Example
     >>> g: nx.Graph = nx.random_tree(70, 1)
     >>> pos = force_directed(g, 1, iterations=1000)
     """
@@ -115,6 +137,7 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
             gamma_t += gravity * round(iteration / 200)
             logger.info(f'threshold reached upping gravity force to: {gamma_t}')
         iteration += 1
+    logger.info(f'finished calculating positions of graph')
     return pos
 
 
@@ -202,10 +225,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     seed: int optional (default=None)
         used in generating starting position for nodes in graph
 
-    Returns
-    -------
-    pos : dict
-        A dictionary of positions keyed by node
+
 
     Notes
     -----
@@ -262,7 +282,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     ax.scatter(pos[:, 0], pos[:, 1], zorder=2)
     logger.info(f'generating the visual plot for the graph')
     for ei in G.hyperedges:
-        logger.info(f'calculating convex hull for hyper-edge: {ei}')
+        logger.info(f'calculating convex hull for hyper-edge: {ei.vertices}')
         indexes = []
         for v in ei.vertices:
             indexes.append(np.where(G.vertices == v)[0][0])
