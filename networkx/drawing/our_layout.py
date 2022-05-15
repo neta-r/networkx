@@ -1,6 +1,17 @@
+'''First artical: Force-Directed Graph Drawing Using Social Gravity and Scaling
+authots: Michael J. Bannister, David Eppstein, Michael T. Goodrich and Lowell Trott
+link: https://arxiv.org/pdf/1209.0748.pdf
+
+Second artical: Hypergraph Drawing by Force-Directed Placement
+authots: Naheed Anjum Arafat and Stephane Bressan
+link: https://www.researchgate.net/publication/318823299_Hypergraph_Drawing_by_Force-Directed_Placement
+
+Our names: Amit Sheer Cohen and Neta Roth'''
+
 import math
 
 import numpy
+import numpy as np
 from scipy.spatial import ConvexHull
 
 import networkx as nx
@@ -18,6 +29,7 @@ logger = logging.getLogger()
 
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
+    "force_directed"
 ]
 
 
@@ -45,6 +57,11 @@ def att(x, k):
 
 
 def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6):
+    """
+    Example
+    >>> g: nx.Graph = nx.random_tree(70, 1)
+    >>> pos = force_directed(g, 1, iterations=1000)
+    """
     import numpy as np
     A = nx.to_numpy_array(G)
     k = math.sqrt(1 / len(A))
@@ -102,19 +119,24 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
 
 
 def in_hull(point, hull, tolerance=1e-12):
+    logger.info("This function checks if a given point is in a given convex hull")
     return all(
         (np.dot(eq[:-1], point) + eq[-1] <= tolerance)
         for eq in hull.equations)
 
 
 def convex_pos(hull):
+    logger.info("This function computes a new point outside the convex hull to circle the convex hull")
     tmp_pos = []
     center = np.divide(np.sum(hull.points, axis=0), len(hull.points))
     for x in hull.points:
+        logger.info("computing linear equation from convex point to the center of the convex")
         m = (x[1] - center[1]) / (x[0] - center[0])
         b = center[1] - m * center[0]
+        logger.info("computing a point which has 0.008 distance from the given point and is on the linear equation")
         dist = 0.008
         x0 = x[0] - dist * (math.sqrt(1 / (1 + m ** 2)))
+        logger.info("adding the point which is *not* inside the convex hull")
         if not in_hull((x0, m * x0 + b), hull):
             tmp_pos.append((x0, m * x0 + b))
         else:
@@ -125,12 +147,14 @@ def convex_pos(hull):
 
 
 def angle_between(x0, x1, y0, y1):
+    logger.info("This function returns the angle between 2 points")
     xDiff = x1 - x0
     yDiff = y1 - y0
     return math.degrees(math.atan2(yDiff, xDiff))
 
 
 def random_color():
+    logger.info("This function returns a random not too bright color")
     import random
     red = random.random()
     green = random.random()
@@ -203,6 +227,14 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
        DEXA 2017. Lecture Notes in Computer Science(), vol 10439. Springer, Cham.
       https://doi.org/10.1007/978-3-319-64471-4_31
 
+    Example
+    >>>    E1 = hyperedge([1, 2, 3, 4])
+    >>> E2 = hyperedge([5, 6])
+    >>> E3 = hyperedge([1, 3, 4])
+    >>> E4 = hyperedge([1])
+    >>> G = hypergraph([1, 2, 3, 4, 5, 6], [E1, E2,  E4])
+    >>> force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 20, graph_type=hypergraph_layout.star_algorithm, seed=1)
+
     """
     import matplotlib.pyplot as plt
     from scipy.spatial import ConvexHull
@@ -236,7 +268,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             indexes.append(np.where(G.vertices == v)[0][0])
         if len(indexes) >= 3:
             hull = ConvexHull(pos[indexes])
-
+            logger.info("Smoothing the drawing")
             new_hull = convex_pos(hull)
             order = get_points_order(new_hull)
             tmp_pos = new_hull.points[order]
@@ -266,68 +298,3 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         ax.annotate(txt, pos[i], color='blue')
     plt.show()
     return pos
-
-
-if __name__ == '__main__':
-    import numpy as np
-
-    # g = nx.Graph()
-    # g.add_edge(0, 1)
-    # g.add_edge(2, 3)
-    # g.add_edge(4, 3)
-    # g.add_edge(2, 1)
-    # g.add_edge(0, 4)
-    # g.add_edge(4, 5)
-    # g.add_edge(6, 7)
-    # # g.add_edge(5,6)
-    # g.add_edge(7, 8)
-    # g.add_edge(6, 8)
-    # # for i in nx.closeness_centrality(g):
-    # b = random.Random()
-    # b.seed(1)
-    # # g = nx.Graph()
-    # while g.edges.__len__() != 40:
-    #     d = b.randint(0, 30)
-    #     a = b.randint(0, 30)
-    #     if a != d and g.has_edge(a, d) is False:
-    #         g.add_edge(a, d)
-    # plt.show()
-    # g.nodes.keys()
-    # g: nx.Graph = nx.random_regular_graph(3, 90, 1)
-    # g: nx.Graph = nx.random_tree(70, 1)
-    # f: list[nx.Graph] = []
-    # for i in range(1, 5):
-    #     f.append(nx.random_tree(70, i))
-    #     # pos_nx = nx.spring_layout(f[i-1], iterations=700)
-    #     # nx.draw(f[i-1], pos_nx, node_size=70)
-    # # nx.draw_spring
-    # # plt.show()
-    # #
-    # for i in range(1, 5):
-    #     for j in f[i-1].edges:
-    #         g.add_edge(j[0]+70*(i+3)+1, j[1]+70*(i+3)+1)
-    v1 = 1
-    v2 = 2
-    v3 = 3
-    v4 = 4
-    v5 = 5
-    v6 = 6
-    E1 = hyperedge([v1, v2, v3, v4])
-    E2 = hyperedge([v5, v6])
-    # E3 = hyperedge([v1, v3, v6])
-    E4 = hyperedge([v1])
-    G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2,  E4])
-    force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 20, graph_type=hypergraph_layout.star_algorithm, seed=1)
-    # pos_nx = nx.spring_layout(g, iterations=700)
-    # nx.draw(g, pos_nx, node_size=70)
-    # # # nx.draw_spring
-    # plt.show()
-    # pos = force_directed(g, 1, iterations=1000)
-    # # pos = nx.rescale_layout(pos)
-    # # # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
-    # pp = {}
-    # for i in range(len(pos)):
-    #     pp[np.array(g.nodes)[i]] = np.array(pos[i])
-    # nx.draw(g, pp, node_size=50)
-    # # # print(np.zeros(shape=(5, 2), dtype=float))
-    # plt.show()
