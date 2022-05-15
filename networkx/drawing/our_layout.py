@@ -10,6 +10,7 @@ from networkx.drawing.hypergraph_layout import hyperedge, hypergraph
 
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
+    "force_directed"
 ]
 
 
@@ -249,8 +250,8 @@ if __name__ == '__main__':
     #         g.add_edge(a, d)
     # plt.show()
     # g.nodes.keys()
-    g: nx.Graph = nx.random_regular_graph(3, 90, 1)
-    # g: nx.Graph = nx.random_tree(70,1)
+    # g: nx.Graph = nx.random_regular_graph(3, 90, 1)
+    g: nx.Graph = nx.random_regular_graph(3,70,1)
     # f: list[nx.Graph] = []
     # for i in range(1, 5):
     #     f.append(nx.random_tree(70, i))
@@ -273,14 +274,15 @@ if __name__ == '__main__':
     E3 = hyperedge([v1, v5, v6])
     E4 = hyperedge([v1])
     G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2, E3, E4])
-    force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.star_algorithm)
+    # force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.star_algorithm)
     # pos_nx = nx.spring_layout(g, iterations=700)
     # nx.draw(g, pos_nx, node_size=70)
     # # nx.draw_spring
     # plt.show()
-    # pos = force_directed(g, 1, iterations=1000)
+    pos = force_directed(g, 1, iterations=1000)
+    print(pos)
     # pos = nx.rescale_layout(pos)
-    # # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
+    # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
     # pp = {}
     # for i in range(len(pos)):
     #     pp[np.array(g.nodes)[i]] = np.array(pos[i])
