@@ -98,6 +98,7 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
             gamma_t += gravity * round(iteration / 200)
             logger.info(f'threshold reached upping gravity force to: {gamma_t}')
         iteration += 1
+    logger.info(f'finished calculating positions of graph')
     return pos
 
 
@@ -230,7 +231,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     ax.scatter(pos[:, 0], pos[:, 1], zorder=2)
     logger.info(f'generating the visual plot for the graph')
     for ei in G.hyperedges:
-        logger.info(f'calculating convex hull for hyper-edge: {ei}')
+        logger.info(f'calculating convex hull for hyper-edge: {ei.vertices}')
         indexes = []
         for v in ei.vertices:
             indexes.append(np.where(G.vertices == v)[0][0])
