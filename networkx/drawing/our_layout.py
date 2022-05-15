@@ -45,6 +45,29 @@ def att(x, k):
 
 
 def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6):
+    """
+
+    Parameters
+    ----------
+    G: nx.Graph
+     for easy calculations and usage of networkx functions
+    seed: int
+        Randomize the initial positions of nodes for consistent results
+    iterations: int (default=50)
+        maximum number of iterations the algorithm is allows to used
+    threshold: float optional (default = 70e-4)
+        Threshold for relative error in node position changes.
+        The iteration stops if the error is below this threshold
+    centrality: nx function (default = None)
+        nx function to calculate the "mass" of each node
+    gravity: int (default = 6)
+        the amount to increase the gravity param in forces calculations
+
+    Returns
+    -------
+    pos : list[float]
+        List with the positions of all of the nodes
+    """
     import numpy as np
     A = nx.to_numpy_array(G)
     k = math.sqrt(1 / len(A))
@@ -179,10 +202,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     seed: int optional (default=None)
         used in generating starting position for nodes in graph
 
-    Returns
-    -------
-    pos : dict
-        A dictionary of positions keyed by node
+
 
     Notes
     -----
