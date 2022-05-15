@@ -9,6 +9,13 @@ import matplotlib.pyplot as plt
 from networkx.drawing import hypergraph_layout
 from networkx.drawing.hypergraph_layout import hyperedge, hypergraph
 
+import logging
+
+# create and configure logger
+logging.basicConfig(filename='my_logging.log', level=logging.INFO)
+logger = logging.getLogger()
+
+
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
 ]
@@ -19,16 +26,14 @@ def get_points_order(hull):
     simplices = hull.simplices[1:]
     for i in range(hull.simplices.shape[0]):
         for j in range(0, simplices.shape[0]):
-            if order_by[len(order_by)-1] in simplices[j]:
-                if simplices[j][0] == order_by[len(order_by)-1]:
+            if order_by[len(order_by) - 1] in simplices[j]:
+                if simplices[j][0] == order_by[len(order_by) - 1]:
                     order_by = np.append(order_by, simplices[j][1])
                 else:
-                    order_by =np.append(order_by, simplices[j][0])
+                    order_by = np.append(order_by, simplices[j][0])
                 simplices = np.delete(simplices, j, axis=0)
                 break
     return order_by
-
-
 
 
 def rep(x, k):
@@ -44,8 +49,13 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
     A = nx.to_numpy_array(G)
     k = math.sqrt(1 / len(A))
     if seed is not None:
+        logger.info(f"Seed for random position was given: {seed}")
         np.random.seed(seed)
+    else:
+        logger.info(f"No seed for random position was given")
+    logger.info(f"Generating random starting position")
     pos = np.asarray(np.random.rand(len(A), 2))
+    logger.info(f'{pos}')
     I = np.zeros(shape=(2, len(A)), dtype=float)
     t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * 0.1
     # simple cooling scheme.
@@ -53,11 +63,16 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
     dt = t / float(iterations + 1)
     gamma_t = 0
     if centrality is None:
+        logger.info(
+            f"No Centrality type to classify mass was given, therefore the algorithm will use nx.closeness_centrality")
         mass = [v for v in nx.closeness_centrality(G).values()]
     else:
+        logger.info(
+            f"No Centrality type to classify mass was given, therefore the algorithm will use nx.{centrality}")
         mass = [v for v in centrality(G).values()]
     center = (np.sum(pos, axis=0) / len(pos))
 
+    logger.info(f'Starting iterations: {iterations}, or until gravity force is {gravity*20}')
     for iteration in range(iterations):
         I *= 0
         for v in range(len(A)):
@@ -81,6 +96,7 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
             threshold /= 3
             # break
             gamma_t += gravity * round(iteration / 200)
+            logger.info(f'threshold reached upping gravity force to: {gamma_t}')
         iteration += 1
     return pos
 
@@ -127,7 +143,7 @@ def random_color():
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_layout.hypergraph,
                                                                  iterations=50, threshold=70e-4, centrality=None,
-                                                                 graph_type=None, gravity = 6, seed=None):
+                                                                 graph_type=None, gravity=6, seed=None):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
     Gravitational Forces.
 
@@ -195,19 +211,30 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     from matplotlib.patches import Ellipse
     import math
 
+
     if graph_type is None:
         graph_type = hypergraph_layout.complete_algorithm
+    logger.info(f'graph type to convert hyper-graph to: {graph_type}')
     g: nx.Graph = graph_type(G)
-    pos = force_directed(G=g, seed=seed, iterations=iterations, threshold=threshold, centrality=centrality, gravity=gravity)
+    logger.info(f'generated graph:'
+                f'nodes: {g.nodes}'
+                f'edges: {g.edges}')
+
+    pos = force_directed(G=g, seed=seed, iterations=iterations, threshold=threshold, centrality=centrality,
+                         gravity=gravity)
+    logger.info(f'positions of nodes: {pos}')
     if graph_type is hypergraph_layout.star_algorithm or graph_type is hypergraph_layout.wheel_algorithm:
+        logger.info(f'removing addon central nodes')
         pos = pos[:len(pos) - len(G.hyperedges)]
     fig, ax = plt.subplots()
     ax.scatter(pos[:, 0], pos[:, 1], zorder=2)
+    logger.info(f'generating the visual plot for the graph')
     for ei in G.hyperedges:
+        logger.info(f'calculating convex hull for hyper-edge: {ei}')
         indexes = []
         for v in ei.vertices:
             indexes.append(np.where(G.vertices == v)[0][0])
-        if len(indexes) >=3:
+        if len(indexes) >= 3:
             hull = ConvexHull(pos[indexes])
 
             new_hull = convex_pos(hull)
@@ -267,7 +294,7 @@ if __name__ == '__main__':
     # plt.show()
     # g.nodes.keys()
     # g: nx.Graph = nx.random_regular_graph(3, 90, 1)
-    g: nx.Graph = nx.random_tree(70,1)
+    # g: nx.Graph = nx.random_tree(70, 1)
     # f: list[nx.Graph] = []
     # for i in range(1, 5):
     #     f.append(nx.random_tree(70, i))
