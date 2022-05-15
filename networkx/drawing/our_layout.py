@@ -1,6 +1,7 @@
 import math
 
 import numpy
+from scipy.spatial import ConvexHull
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,8 +11,24 @@ from networkx.drawing.hypergraph_layout import hyperedge, hypergraph
 
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
-    "force_directed"
 ]
+
+
+def get_points_order(hull):
+    order_by = hull.simplices[0]
+    simplices = hull.simplices[1:]
+    for i in range(hull.simplices.shape[0]):
+        for j in range(0, simplices.shape[0]):
+            if order_by[len(order_by)-1] in simplices[j]:
+                if simplices[j][0] == order_by[len(order_by)-1]:
+                    order_by = np.append(order_by, simplices[j][1])
+                else:
+                    order_by =np.append(order_by, simplices[j][0])
+                simplices = np.delete(simplices, j, axis=0)
+                break
+    return order_by
+
+
 
 
 def rep(x, k):
@@ -22,11 +39,12 @@ def att(x, k):
     return x / k
 
 
-def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None):
+def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6):
     import numpy as np
     A = nx.to_numpy_array(G)
     k = math.sqrt(1 / len(A))
-    np.random.seed(seed)
+    if seed is not None:
+        np.random.seed(seed)
     pos = np.asarray(np.random.rand(len(A), 2))
     I = np.zeros(shape=(2, len(A)), dtype=float)
     t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * 0.1
@@ -57,12 +75,12 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
         pos += delta_pos
         # cool temperature
         t -= dt
-        if gamma_t > 125:
+        if gamma_t > gravity * 20:
             break
         if (np.linalg.norm(delta_pos) / len(A)) < threshold:
             threshold /= 3
             # break
-            gamma_t += 6 * round(iteration / 200)
+            gamma_t += gravity * round(iteration / 200)
         iteration += 1
     return pos
 
@@ -86,7 +104,8 @@ def convex_pos(hull):
         else:
             x0 = x[0] + dist * (math.sqrt(1 / (1 + m ** 2)))
             tmp_pos.append((x0, m * x0 + b))
-    return np.array(tmp_pos)
+    return ConvexHull(tmp_pos)
+    # return np.array(tmp_pos)
 
 
 def angle_between(x0, x1, y0, y1):
@@ -108,7 +127,7 @@ def random_color():
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_layout.hypergraph,
                                                                  iterations=50, threshold=70e-4, centrality=None,
-                                                                 graph_type=None):
+                                                                 graph_type=None, gravity = 6, seed=None):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
     Gravitational Forces.
 
@@ -124,16 +143,6 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     G : graph
       A NetworkX graph.
 
-    k : float (default=None)
-        Optimal distance between nodes.  If None the distance is set to
-        1/sqrt(n) where n is the number of nodes.  Increase this value
-        to move nodes farther apart.
-
-    pos : dict or None  optional (default=None)
-        Initial positions for nodes as a dictionary with node as keys
-        and values as a coordinate list or tuple.  If None, then use
-        random initial positions.
-
     iterations : int  optional (default=50)
         Maximum number of iterations taken
 
@@ -141,12 +150,17 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         Threshold for relative error in node position changes.
         The iteration stops if the error is below this threshold.
 
-    centrality_type: int optional (default=0)
+    centrality: int optional (default=0)
         Centrality type for the Social gravity field used in the algorithm.
 
     graph_type: int optional (default=0)
-        Graph type for chosing type of conversion from hyper-graph to graph (cycle/wheel/star/complete)
+        Graph type for choosing type of conversion from hyper-graph to graph (cycle/wheel/star/complete)
 
+    gravity: int optional (default=6)
+        is responsible for the amount of gravity for the pos generation
+
+    seed: int optional (default=None)
+        used in generating starting position for nodes in graph
 
     Returns
     -------
@@ -184,7 +198,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     if graph_type is None:
         graph_type = hypergraph_layout.complete_algorithm
     g: nx.Graph = graph_type(G)
-    pos = force_directed(g, 1, iterations, threshold, centrality)
+    pos = force_directed(G=g, seed=seed, iterations=iterations, threshold=threshold, centrality=centrality, gravity=gravity)
     if graph_type is hypergraph_layout.star_algorithm or graph_type is hypergraph_layout.wheel_algorithm:
         pos = pos[:len(pos) - len(G.hyperedges)]
     fig, ax = plt.subplots()
@@ -193,7 +207,18 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         indexes = []
         for v in ei.vertices:
             indexes.append(np.where(G.vertices == v)[0][0])
-        if len(indexes) == 2:
+        if len(indexes) >=3:
+            hull = ConvexHull(pos[indexes])
+
+            new_hull = convex_pos(hull)
+            order = get_points_order(new_hull)
+            tmp_pos = new_hull.points[order]
+            tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
+            u_new = np.linspace(u.min(), u.max(), 1000)
+            x_new, y_new = splev(u_new, tck, der=0)
+
+            ax.plot(x_new, y_new, color=random_color(), zorder=0)
+        elif len(indexes) == 2:
             x0 = pos[indexes][0][0]
             y0 = pos[indexes][0][1]
             x1 = pos[indexes][1][0]
@@ -208,16 +233,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), 0.010, fill=False, color=random_color())
             ax.set_aspect(1)
             ax.add_artist(draw_circle)
-        else:
-            hull = ConvexHull(pos[indexes])
-            tmp_pos = convex_pos(hull)
-            # ax.scatter(center[0], center[1], zorder=2)
-            tmp_pos = np.append(tmp_pos, [[0, 0]], axis=0)
-            tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
-            u_new = np.linspace(u.min(), u.max(), 1000)
-            x_new, y_new = splev(u_new, tck, der=0)
 
-            ax.plot(x_new, y_new, color=random_color(), zorder=1)
             # plt.show()
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
@@ -251,15 +267,15 @@ if __name__ == '__main__':
     # plt.show()
     # g.nodes.keys()
     # g: nx.Graph = nx.random_regular_graph(3, 90, 1)
-    g: nx.Graph = nx.random_regular_graph(3,70,1)
+    g: nx.Graph = nx.random_tree(70,1)
     # f: list[nx.Graph] = []
     # for i in range(1, 5):
     #     f.append(nx.random_tree(70, i))
-    # pos_nx = nx.spring_layout(f[i-1], iterations=700)
-    # nx.draw(f[i-1], pos_nx, node_size=70)
+    #     # pos_nx = nx.spring_layout(f[i-1], iterations=700)
+    #     # nx.draw(f[i-1], pos_nx, node_size=70)
     # # nx.draw_spring
-    # plt.show()
-    #
+    # # plt.show()
+    # #
     # for i in range(1, 5):
     #     for j in f[i-1].edges:
     #         g.add_edge(j[0]+70*(i+3)+1, j[1]+70*(i+3)+1)
@@ -270,22 +286,21 @@ if __name__ == '__main__':
     v5 = 5
     v6 = 6
     E1 = hyperedge([v1, v2, v3, v4])
-    E2 = hyperedge([v2, v5])
-    E3 = hyperedge([v1, v5, v6])
+    E2 = hyperedge([v5, v6])
+    # E3 = hyperedge([v1, v3, v6])
     E4 = hyperedge([v1])
-    G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2, E3, E4])
-    # force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.star_algorithm)
+    G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2,  E4])
+    force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 20, graph_type=hypergraph_layout.star_algorithm, seed=1)
     # pos_nx = nx.spring_layout(g, iterations=700)
     # nx.draw(g, pos_nx, node_size=70)
-    # # nx.draw_spring
+    # # # nx.draw_spring
     # plt.show()
-    pos = force_directed(g, 1, iterations=1000)
-    print(pos)
-    # pos = nx.rescale_layout(pos)
-    # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
+    # pos = force_directed(g, 1, iterations=1000)
+    # # pos = nx.rescale_layout(pos)
+    # # # pos = force_directed_hyper_graphs_using_social_and_gravity_scaling(g)
     # pp = {}
     # for i in range(len(pos)):
     #     pp[np.array(g.nodes)[i]] = np.array(pos[i])
     # nx.draw(g, pp, node_size=50)
-    # # print(np.zeros(shape=(5, 2), dtype=float))
+    # # # print(np.zeros(shape=(5, 2), dtype=float))
     # plt.show()
