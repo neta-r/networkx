@@ -1,6 +1,7 @@
 import math
 
 import numpy
+from scipy.spatial import ConvexHull
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -11,6 +12,23 @@ from networkx.drawing.hypergraph_layout import hyperedge, hypergraph
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
 ]
+
+
+def get_points_order(hull):
+    order_by = hull.simplices[0]
+    simplices = hull.simplices[1:]
+    for i in range(hull.simplices.shape[0]):
+        for j in range(0, simplices.shape[0]):
+            if order_by[len(order_by)-1] in simplices[j]:
+                if simplices[j][0] == order_by[len(order_by)-1]:
+                    order_by = np.append(order_by, simplices[j][1])
+                else:
+                    order_by =np.append(order_by, simplices[j][0])
+                simplices = np.delete(simplices, j, axis=0)
+                break
+    return order_by
+
+
 
 
 def rep(x, k):
@@ -85,7 +103,8 @@ def convex_pos(hull):
         else:
             x0 = x[0] + dist * (math.sqrt(1 / (1 + m ** 2)))
             tmp_pos.append((x0, m * x0 + b))
-    return np.array(tmp_pos)
+    return ConvexHull(tmp_pos)
+    # return np.array(tmp_pos)
 
 
 def angle_between(x0, x1, y0, y1):
@@ -192,7 +211,22 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         indexes = []
         for v in ei.vertices:
             indexes.append(np.where(G.vertices == v)[0][0])
-        if len(indexes) == 2:
+        if len(indexes) >=3:
+            hull = ConvexHull(pos[indexes])
+            # for i in indexes:
+            #     tmp_pos.append(convex)
+            new_hull = convex_pos(hull)
+            # ax.scatter(center[0], center[1], zorder=2)
+            order = get_points_order(new_hull)
+            tmp_pos = new_hull.points[order]
+            # tmp_pos = np.append(tmp_pos, [[0, 0]], axis=0)
+            tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
+            u_new = np.linspace(u.min(), u.max(), 1000)
+            x_new, y_new = splev(u_new, tck, der=0)
+
+            ax.plot(x_new, y_new, color=random_color(), zorder=0)
+            # ax.plot(tmp_pos[:, 0], tmp_pos[:, 1], color=random_color(), zorder=0)
+        elif len(indexes) == 2:
             x0 = pos[indexes][0][0]
             y0 = pos[indexes][0][1]
             x1 = pos[indexes][1][0]
@@ -207,16 +241,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), 0.010, fill=False, color=random_color())
             ax.set_aspect(1)
             ax.add_artist(draw_circle)
-        else:
-            hull = ConvexHull(pos[indexes])
-            tmp_pos = convex_pos(hull)
-            # ax.scatter(center[0], center[1], zorder=2)
-            tmp_pos = np.append(tmp_pos, [[0, 0]], axis=0)
-            tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
-            u_new = np.linspace(u.min(), u.max(), 1000)
-            x_new, y_new = splev(u_new, tck, der=0)
 
-            ax.plot(x_new, y_new, color=random_color(), zorder=1)
             # plt.show()
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
@@ -269,11 +294,11 @@ if __name__ == '__main__':
     v5 = 5
     v6 = 6
     E1 = hyperedge([v1, v2, v3, v4])
-    E2 = hyperedge([v2, v5])
-    E3 = hyperedge([v1, v5, v6])
+    E2 = hyperedge([v1, v2])
+    E3 = hyperedge([v1, v3, v6])
     E4 = hyperedge([v1])
     G = hypergraph([v1, v2, v3, v4, v5, v6], [E1, E2, E3, E4])
-    force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.star_algorithm)
+    force_directed_hyper_graphs_using_social_and_gravity_scaling(G, 1000, graph_type=hypergraph_layout.complete_algorithm)
     # pos_nx = nx.spring_layout(g, iterations=700)
     # nx.draw(g, pos_nx, node_size=70)
     # # nx.draw_spring
