@@ -56,9 +56,18 @@ def star_algorithm(h_graph: hypergraph):
 
 
 def wheel_algorithm(h_graph: hypergraph):
-    g1 = cycle_algorithm(h_graph)
-    g2 = star_algorithm(h_graph)
-    g = nx.union(g1, g2, rename=("G", "H"))
+    g = nx.Graph()
+    for v in h_graph.vertices:
+        g.add_node(v)
+    for i, edge in enumerate(h_graph.hyperedges):
+        center_vertex = f'center {i}'
+        for v in edge.vertices:
+            g.add_edge(v, center_vertex)
+    for edge in h_graph.hyperedges:
+        for i in range(len(edge.vertices) - 1):
+            g.add_edge(edge.vertices[i], edge.vertices[i + 1])
+        if len(edge.vertices) > 1:
+            g.add_edge(edge.vertices[0], edge.vertices[-1])
     return g
 
 

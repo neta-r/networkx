@@ -26,7 +26,6 @@ import logging
 logging.basicConfig(filename='my_logging.log', level=logging.INFO)
 logger = logging.getLogger()
 
-
 __all__ = [
     "force_directed_hyper_graphs_using_social_and_gravity_scaling",
     "force_directed"
@@ -111,7 +110,7 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
         mass = [v for v in centrality(G).values()]
     center = (np.sum(pos, axis=0) / len(pos))
 
-    logger.info(f'Starting iterations: {iterations}, or until gravity force is {gravity*20}')
+    logger.info(f'Starting iterations: {iterations}, or until gravity force is {gravity * 20}')
     for iteration in range(iterations):
         I *= 0
         for v in range(len(A)):
@@ -190,7 +189,7 @@ def random_color():
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_layout.hypergraph,
                                                                  iterations=50, threshold=70e-4, centrality=None,
-                                                                 graph_type=None, gravity=6, seed=None):
+                                                                 graph_type=None, gravity=6, seed=None, title=None):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
     Gravitational Forces.
 
@@ -203,6 +202,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
 
     Parameters
     ----------
+    title
     G : graph
       A NetworkX graph.
 
@@ -263,7 +263,6 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     from matplotlib.patches import Ellipse
     import math
 
-
     if graph_type is None:
         graph_type = hypergraph_layout.complete_algorithm
     logger.info(f'graph type to convert hyper-graph to: {graph_type}')
@@ -306,15 +305,16 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             center = ((x0 + x1) / 2, (y0 + y1) / 2)
             angle = angle_between(x0, x1, y0, y1)
             ellipse = Ellipse(center, 0.020, width, angle=angle + 90, fill=False, color=random_color())
-            ax.set_aspect(1)
             ax.add_artist(ellipse)
         elif len(indexes) == 1:
-            draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), 0.010, fill=False, color=random_color())
-            ax.set_aspect(1)
+            size = plt.gcf().get_size_inches()[0]/200
+            draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), size, fill=False, color=random_color())
             ax.add_artist(draw_circle)
 
             # plt.show()
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
+    if title is not None:
+        plt.title(title)
     plt.show()
     return pos
