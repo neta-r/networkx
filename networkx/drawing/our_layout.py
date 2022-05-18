@@ -142,6 +142,10 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
 
 def in_hull(point, hull, tolerance=1e-12):
     logger.info("This function checks if a given point is in a given convex hull")
+    # taken from
+    # https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl
+    # In words, a point is in the hull if and only if for every equation (describing the facets) the dot product between
+    # the point and the normal vector (eq[:-1]) plus the offset (eq[-1]) is less than or equal to zero.
     return all(
         (np.dot(eq[:-1], point) + eq[-1] <= tolerance)
         for eq in hull.equations)
@@ -155,8 +159,9 @@ def convex_pos(hull):
         logger.info("computing linear equation from convex point to the center of the convex")
         m = (x[1] - center[1]) / (x[0] - center[0])
         b = center[1] - m * center[0]
-        logger.info("computing a point which has 0.008 distance from the given point and is on the linear equation")
-        dist = 0.008
+        logger.info("computing a point which has proportional"
+                    " distance from the given point and is on the linear equation")
+        dist = plt.gcf().get_size_inches()[0]/400
         x0 = x[0] - dist * (math.sqrt(1 / (1 + m ** 2)))
         logger.info("adding the point which is *not* inside the convex hull")
         if not in_hull((x0, m * x0 + b), hull):
@@ -165,7 +170,6 @@ def convex_pos(hull):
             x0 = x[0] + dist * (math.sqrt(1 / (1 + m ** 2)))
             tmp_pos.append((x0, m * x0 + b))
     return ConvexHull(tmp_pos)
-    # return np.array(tmp_pos)
 
 
 def angle_between(x0, x1, y0, y1):
@@ -278,6 +282,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         logger.info(f'removing addon central nodes')
         pos = pos[:len(pos) - len(G.hyperedges)]
     fig, ax = plt.subplots()
+    logger.info('drawing vertices as circles')
     ax.scatter(pos[:, 0], pos[:, 1], zorder=2)
     logger.info(f'generating the visual plot for the graph')
     for ei in G.hyperedges:
@@ -287,10 +292,13 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             indexes.append(np.where(G.vertices == v)[0][0])
         if len(indexes) >= 3:
             hull = ConvexHull(pos[indexes])
-            logger.info("Smoothing the drawing")
+            logger.info("Getting the edge positions")
             new_hull = convex_pos(hull)
+            logger.info("Getting the order of the edges")
             order = get_points_order(new_hull)
             tmp_pos = new_hull.points[order]
+            logger.info("Smoothing the drawing")
+            # taken from https://stackoverflow.com/questions/31464345/fitting-a-closed-curve-to-a-set-of-points
             tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
             u_new = np.linspace(u.min(), u.max(), 1000)
             x_new, y_new = splev(u_new, tck, der=0)
@@ -307,11 +315,12 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             ellipse = Ellipse(center, 0.020, width, angle=angle + 90, fill=False, color=random_color())
             ax.add_artist(ellipse)
         elif len(indexes) == 1:
+            logger.info("Getting the circle size proportional to the canvas size")
             size = plt.gcf().get_size_inches()[0]/200
             draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), size, fill=False, color=random_color())
             ax.add_artist(draw_circle)
 
-            # plt.show()
+    logger.info("drawing vertices' numbers")
     for i, txt in enumerate(G.vertices):
         ax.annotate(txt, pos[i], color='blue')
     if title is not None:

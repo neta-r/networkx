@@ -99,11 +99,11 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling_drawing(G, iter
 
 def small_hyper_graph():
     E1 = hyperedge([1, 2, 3, 4])
-    E2 = hyperedge([5, 6])
-    E3 = hyperedge([1, 3, 4])
+    E2 = hyperedge([1, 3])
+    E3 = hyperedge([1, 5, 6])
     E4 = hyperedge([1])
     G = hypergraph([1, 2, 3, 4, 5, 6], [E1, E2, E3, E4])
-    force_directed_hyper_graphs_using_social_and_gravity_scaling_drawing(G, 10)
+    force_directed_hyper_graphs_using_social_and_gravity_scaling_drawing(G, 1)
 
 
 def medium_hyper_graph():
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     # force_directed_regular()
     # hyper graphs examples for the force_directed_hyper_graphs_using_social_and_gravity_scaling function
     # (second article)
-    # small_hyper_graph()
+    small_hyper_graph()
     # medium_hyper_graph()
     # large_hyper_graph()
-    large_hyper_graph_with_tones_of_edges()
+    # large_hyper_graph_with_tones_of_edges()
