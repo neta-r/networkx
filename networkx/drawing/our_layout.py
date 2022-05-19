@@ -236,7 +236,7 @@ def random_color():
     red = random.random()
     green = random.random()
     blue = random.random()
-    if red < 0.1 or green < 0.1 or blue < 0.1:
+    if red < 0.2 or green < 0.2 or blue < 0.2:
         return random_color()
     return [red, green, blue]
 
@@ -333,8 +333,9 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
         logger.info(f'removing addon central nodes')
         pos = pos[:len(pos) - len(G.hyperedges)]
     fig, ax = plt.subplots()
-    logger.info('drawing vertices as circles')
-    ax.scatter(pos[:, 0], pos[:, 1], zorder=2)
+    logger.info('drawing proportional vertices as circles')
+    size = plt.gcf().get_size_inches()[0]
+    ax.scatter(pos[:, 0], pos[:, 1], s=size, zorder=2)
     logger.info(f'generating the visual plot for the graph')
     for ei in G.hyperedges:
         logger.info(f'calculating convex hull for hyper-edge: {ei.vertices}')
