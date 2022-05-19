@@ -47,15 +47,9 @@ def get_points_order(hull):
     return order_by
 
 
-def rep(x, k):
-    return k ** 2 / x ** 2
 
-
-def att(x, k):
-    return x / k
-
-
-def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6):
+def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6,
+                   gravity_multiplier: float = 20., dthreshold: float = 3):
     """
 
     Parameters
@@ -73,6 +67,10 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
         nx function to calculate the "mass" of each node
     gravity: int (default = 6)
         the amount to increase the gravity param in forces calculations
+    gravity_multiplier: float (default=20)
+        the multiplier of the gravitational force in the step function
+    dthreshold: float (default=3.)
+        how much to divide the threshold when reaching the current threshold
 
     Returns
     -------
@@ -95,21 +93,16 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
     pos = np.asarray(np.random.rand(len(A), 2))
     logger.info(f'{pos}')
     I = np.zeros(shape=(2, len(A)), dtype=float)
+    # the initial "temperature"  is about .1 of domain area (=1x1)
+    # this is the largest step allowed in the dynamics.
     t = max(max(pos.T[0]) - min(pos.T[0]), max(pos.T[1]) - min(pos.T[1])) * 0.1
     # simple cooling scheme.
     # linearly step down by dt on each iteration so last iteration is size dt.
     dt = t / float(iterations + 1)
     gamma_t = 0
-    if centrality is None:
-        logger.info(
-            f"No Centrality type to classify mass was given, therefore the algorithm will use nx.closeness_centrality")
-        mass = [v for v in nx.closeness_centrality(G).values()]
-    else:
-        logger.info(
-            f"No Centrality type to classify mass was given, therefore the algorithm will use nx.{centrality}")
-        mass = [v for v in centrality(G).values()]
-    center = (np.sum(pos, axis=0) / len(pos))
+    mass = get_mass(G, centrality)
 
+    center = (np.sum(pos, axis=0) / len(pos))
     logger.info(f'Starting iterations: {iterations}, or until gravity force is {gravity * 20}')
     for iteration in range(iterations):
         I *= 0
@@ -119,25 +112,83 @@ def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4
             distance = np.where(distance < 0.01, 0.01, distance)
             Ai = A[v]
             # displacement "force"
-            I[:, v] += (
-                               delta * (k * k / distance ** 2 - Ai * distance / k)
-                       ).sum(axis=1) + gamma_t * mass[v] * (center - pos[v])
+            I[:, v] += calculate_position_change_for_vertice(Ai, center, delta, distance, gamma_t, k, mass, pos, v)
         length = np.sqrt((I ** 2).sum(axis=0))
         length = np.where(length < 0.01, 0.1, length)
         delta_pos = (I * t / length).T
         pos += delta_pos
         # cool temperature
         t -= dt
-        if gamma_t > gravity * 20:
+
+        if gamma_t > gravity * gravity_multiplier:
             break
         if (np.linalg.norm(delta_pos) / len(A)) < threshold:
-            threshold /= 3
-            # break
+            threshold /= dthreshold
             gamma_t += gravity * round(iteration / 200)
             logger.info(f'threshold reached upping gravity force to: {gamma_t}')
         iteration += 1
     logger.info(f'finished calculating positions of graph')
     return pos
+
+
+def calculate_position_change_for_vertice(Ai, center, delta, distance, gamma_t, k, mass, pos, v):
+    """
+
+    Parameters
+    ----------
+    Ai: matrix
+        adjacency's matrix for node v
+    center:
+        the position of the relative center
+
+    delta:
+        matrix of the vector from v to all other vertices
+    distance: matrix
+        normalized distance from v to all other nodes in graph
+    gamma_t: float
+        the gravity force
+    k: float
+        area and minimum distance between two nodes
+    mass:
+        the mass/centrality of v
+    pos
+    v: int
+    id of v
+
+    Returns
+    -------
+    the calculations of the change in position
+    """
+    return (
+                   delta * (k * k / distance ** 2 - Ai * distance / k)
+           ).sum(axis=1) + gamma_t * mass[v] * (center - pos[v])
+
+
+def get_mass(G, centrality):
+    """
+
+    Parameters
+    ----------
+    G: nx.Graph
+        the graph to run the centrality algorithm on
+    centrality:
+        nx function about what kind of centrality to use
+        nx.closeness_centrality, nx.degree_centrality, nx.betweenness_centrality
+
+    Returns
+    -------
+    mass: np.array
+        returns an array with the values of the centrality
+    """
+    if centrality is None:
+        logger.info(
+            f"No Centrality type to classify mass was given, therefore the algorithm will use nx.closeness_centrality")
+        mass = [v for v in nx.closeness_centrality(G).values()]
+    else:
+        logger.info(
+            f"No Centrality type to classify mass was given, therefore the algorithm will use nx.{centrality}")
+        mass = [v for v in centrality(G).values()]
+    return mass
 
 
 def in_hull(point, hull, tolerance=1e-12):
@@ -161,7 +212,7 @@ def convex_pos(hull):
         b = center[1] - m * center[0]
         logger.info("computing a point which has proportional"
                     " distance from the given point and is on the linear equation")
-        dist = plt.gcf().get_size_inches()[0]/400
+        dist = plt.gcf().get_size_inches()[0] / 400
         x0 = x[0] - dist * (math.sqrt(1 / (1 + m ** 2)))
         logger.info("adding the point which is *not* inside the convex hull")
         if not in_hull((x0, m * x0 + b), hull):
@@ -316,7 +367,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             ax.add_artist(ellipse)
         elif len(indexes) == 1:
             logger.info("Getting the circle size proportional to the canvas size")
-            size = plt.gcf().get_size_inches()[0]/200
+            size = plt.gcf().get_size_inches()[0] / 200
             draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), size, fill=False, color=random_color())
             ax.add_artist(draw_circle)
 
