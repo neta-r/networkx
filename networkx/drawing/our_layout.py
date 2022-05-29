@@ -47,7 +47,6 @@ def get_points_order(hull):
     return order_by
 
 
-
 def force_directed(G: nx.Graph, seed: int, iterations: int = 50, threshold=70e-4, centrality=None, gravity: int = 6,
                    gravity_multiplier: float = 20., dthreshold: float = 3):
     """
@@ -192,6 +191,21 @@ def get_mass(G, centrality):
 
 
 def in_hull(point, hull, tolerance=1e-12):
+    """
+       Parameters
+       ----------
+       point:
+           the point function will calculate if inside the convex hull
+       hull:
+           the hull the point is asked about
+       tolerance:
+           tolerance for correctness
+
+       Returns
+       -------
+       mass: bool
+            if the point inside the convex hull- True, otherwise- False
+       """
     logger.info("This function checks if a given point is in a given convex hull")
     # taken from
     # https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl
@@ -202,7 +216,20 @@ def in_hull(point, hull, tolerance=1e-12):
         for eq in hull.equations)
 
 
-def convex_pos(hull):
+def convex_pos(hull, proportion=400):
+    """
+       Parameters
+       ----------
+       hull:
+           the hull which the function calculates it's smoothing positions
+       proportion:
+           The parameter that determines how much to divide the canvas
+           (to get the distance from the real position of the point to its new position)
+       Returns
+       -------
+       hull:
+           the hull with the new positions
+       """
     logger.info("This function computes a new point outside the convex hull to circle the convex hull")
     tmp_pos = []
     center = np.divide(np.sum(hull.points, axis=0), len(hull.points))
@@ -212,7 +239,8 @@ def convex_pos(hull):
         b = center[1] - m * center[0]
         logger.info("computing a point which has proportional"
                     " distance from the given point and is on the linear equation")
-        dist = plt.gcf().get_size_inches()[0] / 400
+
+        dist = plt.gcf().get_size_inches()[0] / proportion
         x0 = x[0] - dist * (math.sqrt(1 / (1 + m ** 2)))
         logger.info("adding the point which is *not* inside the convex hull")
         if not in_hull((x0, m * x0 + b), hull):
@@ -224,19 +252,45 @@ def convex_pos(hull):
 
 
 def angle_between(x0, x1, y0, y1):
+    """
+         Parameters
+         ----------
+         x0:
+             x coordinate of the first point
+         y0:
+             y coordinate of the first point
+         x1
+             x coordinate of the second point
+         y0:
+             y coordinate of the second point
+         Returns
+         -------
+         int:
+             degree between 2 points
+         """
     logger.info("This function returns the angle between 2 points")
     xDiff = x1 - x0
     yDiff = y1 - y0
     return math.degrees(math.atan2(yDiff, xDiff))
 
 
-def random_color():
+def random_color(brightness_threshold=0.2):
+    """
+       Parameters
+       ----------
+       brightness_threshold:
+           determines the brighter a color may be
+       Returns
+       -------
+       int:
+           random color (with RBG values > brightness_threshold)
+       """
     logger.info("This function returns a random not too bright color")
     import random
     red = random.random()
     green = random.random()
     blue = random.random()
-    if red < 0.2 or green < 0.2 or blue < 0.2:
+    if red < brightness_threshold or green < brightness_threshold or blue < brightness_threshold:
         return random_color()
     return [red, green, blue]
 
@@ -352,7 +406,8 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             logger.info("Smoothing the drawing")
             # taken from https://stackoverflow.com/questions/31464345/fitting-a-closed-curve-to-a-set-of-points
             tck, u = splprep(tmp_pos.T, u=None, s=0.0, per=1)
-            u_new = np.linspace(u.min(), u.max(), 1000)
+            smooting_param = 1000
+            u_new = np.linspace(u.min(), u.max(), smooting_param)
             x_new, y_new = splev(u_new, tck, der=0)
 
             ax.plot(x_new, y_new, color=random_color(), zorder=0)
@@ -361,14 +416,16 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
             y0 = pos[indexes][0][1]
             x1 = pos[indexes][1][0]
             y1 = pos[indexes][1][1]
-            width = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2) + 0.03
+            dist_from_point = 0.03
+            height = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2) + dist_from_point
             center = ((x0 + x1) / 2, (y0 + y1) / 2)
             angle = angle_between(x0, x1, y0, y1)
-            ellipse = Ellipse(center, 0.020, width, angle=angle + 90, fill=False, color=random_color())
+            ellipse = Ellipse(center, width=0.020, height=height, angle=angle + 90, fill=False, color=random_color())
             ax.add_artist(ellipse)
         elif len(indexes) == 1:
             logger.info("Getting the circle size proportional to the canvas size")
-            size = plt.gcf().get_size_inches()[0] / 200
+            proportion = 200
+            size = plt.gcf().get_size_inches()[0] / proportion
             draw_circle = plt.Circle((pos[indexes][0][0], pos[indexes][0][1]), size, fill=False, color=random_color())
             ax.add_artist(draw_circle)
 
