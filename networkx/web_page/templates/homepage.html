@@ -180,7 +180,7 @@
 </head>
 <body>
 <div class="testbox">
-    <form action="/">
+    <form method="post" action="/">
         <div class="banner">
             <h1>Try our algorithm!</h1>
         </div>
@@ -188,45 +188,16 @@
         <fieldset>
             <legend>Graph information:</legend>
             <div class="item">
-                <label for="name">Number of vertices<span></span></label>
-                <input id="vtx" type="text" name="text" required/>
-                <div class="item">
-                    <label for="name">Number of edges<span></span></label>
-                    <input id="edges" type="text" name="text" required/>
-                </div>
+                <p>{{form.vtx.label}}{{form.vtx()}}<p>
+                <p>{{form.edges.label}}{{form.edges()}}<p>
             </div>
         </fieldset>
         <fieldset>
             <legend>Other parameters:</legend>
             <div class="item">
-                <label for="name">Number of iterations<span></span></label>
-                <input id="iter" type="text" name="text"/></div>
-            <div class="item">
-                <label for="name">Threshold<span></span></label>
-                <input id="name" type="text" name="text"/>
-            </div>
-            <div class="item">
-                <select>
-                    <option selected value="" disabled selected>Initialization algorithm</option>
-                    <option value="1">Complete algorithm</option>
-                    <option value="2">Cycle algorithm</option>
-                    <option value="3">Start algorithm</option>
-                    <option value="4">Wheel algorithm</option>
-                </select>
-            </div>
-            <div>
-                <select>
-                    <option selected value="" disabled selected>Centrality</option>
-                    <option value="1">Clossness</option>
-                    <option value="2">Betweeness</option>
-                    <option value="3">Degree</option>
-                </select>
-            </div>
-        </fieldset>
-        </br>
-        <fieldset>
-            <div class="btn-block">
-                <button type="submit" href="/">APPLY</button>
+                <p>{{form.iter.label}}{{form.iter()}}<p>
+                <p>{{form.threshold.label}}{{form.threshold()}}<p>
+                <p>{{form.submit()}}<p>
             </div>
         </fieldset>
     </form>

@@ -12,8 +12,7 @@ def result():
 @app.route("/", methods=['GET', 'POST'])
 def home():
     form = Parameters()
-    is_submitted = form.validate_on_submit()
-    if not is_submitted:
+    if not form.validate_on_submit():
         return render_template('homepage.html', form=form)
     else:
         flash(f'Welcome, !', 'success')

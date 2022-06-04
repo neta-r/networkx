@@ -11,4 +11,4 @@ class Parameters(FlaskForm):
     centrality = SelectField(u'Centrality', choices=[('cl', 'Closeness'), ('bt', 'Betweeness'), ('dg', 'Degree')])
     type = SelectField(u'Initialization algorithm', choices=[('Comp', 'Complete algorithm'), ('Cyc', 'Cycle algorithm'),
                                                              ('Str', 'Start algorithm'), ('Wh', 'Wheel algorithm')])
-    submit = SubmitField('Submit')
+    submit = SubmitField('Run!')
