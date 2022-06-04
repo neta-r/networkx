@@ -9,6 +9,6 @@ class Parameters(FlaskForm):
     iter = IntegerField('Number of iterations', default=50)
     threshold = IntegerField('Threshold', default=70e-4)
     centrality = SelectField(u'Centrality', choices=[('cl', 'Closeness'), ('bt', 'Betweeness'), ('dg', 'Degree')])
-    # type = SelectField(u'Initialization algorithm', choices=[('Comp', 'Complete algorithm'), ('Cyc', 'Cycle algorithm'),
-                                                           #  ('Str', 'Start algorithm'), ('Wh', 'Wheel algorithm')])
+    type = SelectField(u'Initialization algorithm', choices=[('Comp', 'Complete algorithm'), ('Cyc', 'Cycle algorithm'),
+                                                             ('Str', 'Start algorithm'), ('Wh', 'Wheel algorithm')])
     submit = SubmitField('Run!')
