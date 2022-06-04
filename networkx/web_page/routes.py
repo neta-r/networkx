@@ -13,6 +13,7 @@ def result():
 def home():
     form = Parameters()
     if request.method == 'POST':
+        print(form.centrality.data)
         return redirect(url_for('result'))
     else:
         return render_template('homepage.html', form=form)
