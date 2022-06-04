@@ -9,10 +9,12 @@ def result():
     return "hello world"
 
 
-@app.rout("/", methods=['GET', 'POST'])
+@app.route("/", methods=['GET', 'POST'])
 def home():
     form = Parameters()
-    if form.validation_on_submit():
-        flash(f'Information received successfully!', 'success')
-        return redirect(url_for(home.__home__))
-    return render_template('homepage.html', title='Param', form=form)
+    is_submitted = form.validate_on_submit()
+    if not is_submitted:
+        return render_template('homepage.html', form=form)
+    else:
+        flash(f'Welcome, !', 'success')
+        return redirect(url_for(result.__name__))
