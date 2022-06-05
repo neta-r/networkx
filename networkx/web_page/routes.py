@@ -1,3 +1,5 @@
+import os
+
 from flask import render_template, url_for, redirect, request
 
 import networkx as nx
@@ -51,11 +53,13 @@ def result():
 def home():
     form = Parameters()
     if request.method == 'POST':
-        force_directed_hyper_graphs_using_social_and_gravity_scaling(
+        fig = force_directed_hyper_graphs_using_social_and_gravity_scaling(
             G=random_hypergraph(form.vtx.data, form.edges.data),
             iterations=form.iter.data,
             centrality=find_centrality(form.centrality.data),
-            graph_type=find_algo(form.type.data), gravity=form.gravity.data)
+            graph_type=find_algo(form.type.data), gravity=form.gravity.data, fig=True)
+        pic_path = os.path.join(app.root_path, 'static\images\plot.png')
+        fig.savefig(pic_path)
         return redirect(url_for('result'))
     else:
         return render_template('homepage.html', form=form)

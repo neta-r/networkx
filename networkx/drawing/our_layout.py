@@ -9,6 +9,7 @@ link: https://www.researchgate.net/publication/318823299_Hypergraph_Drawing_by_F
 Our names: Amit Sheer Cohen and Neta Roth'''
 
 import math
+import os.path
 
 import numpy
 import numpy as np
@@ -23,6 +24,7 @@ from networkx.drawing.hypergraph_layout import hyperedge, hypergraph
 import logging
 
 # create and configure logger
+
 logging.basicConfig(filename='my_logging.log', level=logging.INFO)
 logger = logging.getLogger()
 
@@ -298,7 +300,8 @@ def random_color(brightness_threshold=0.2):
 # @nx.not_implemented_for("directed")
 def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_layout.hypergraph,
                                                                  iterations=50, threshold=70e-4, centrality=None,
-                                                                 graph_type=None, gravity=6, seed=None, title=None):
+                                                                 graph_type=None, gravity=6, seed=None, title=None,
+                                                                 fig=False):
     """Positions nodes using Fruchterman-Reingold force-directed algorithm combined with Hyper-Graphs and Social and
     Gravitational Forces.
 
@@ -334,7 +337,11 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     seed: int optional (default=None)
         used in generating starting position for nodes in graph
 
+    title: str optional (default=None)
+        title of the plot
 
+    fig: bool optional (default=None)
+        if true will return the fig otherwise will return pos
 
     Notes
     -----
@@ -435,7 +442,6 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     if title is not None:
         plt.title(title)
     plt.show()
-    di = r"C:\Users\neta2\Desktop\C.S\year 3\semester2\research " \
-         r"algorithms\proj\networkx\networkx\web_page\static\images"
-    plt.savefig(di+'\plot.png')
+    if fig:
+        return fig
     return pos
