@@ -26,11 +26,13 @@
     </style>
 </head>
 <body>
-        <hr/>
-        <fieldset>
-            <legend>Output:</legend>
-            <img src="/plot.png" alt="my plot">
+<hr/>
+<fieldset>
+    <legend>Output:</legend>
+    <p><img style='width:400px; height:300px' src='{{ url_for("static", filename="images/plot.png") }}'/>
+    </p>
 
-        </fieldset>
+
+</fieldset>
 </body>
 </html>
