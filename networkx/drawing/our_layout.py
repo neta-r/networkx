@@ -435,4 +435,7 @@ def force_directed_hyper_graphs_using_social_and_gravity_scaling(G: hypergraph_l
     if title is not None:
         plt.title(title)
     plt.show()
+    di = r"C:\Users\neta2\Desktop\C.S\year 3\semester2\research " \
+         r"algorithms\proj\networkx\networkx\web_page\static\images"
+    plt.savefig(di+'\plot.png')
     return pos
