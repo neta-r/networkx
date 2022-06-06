@@ -4,8 +4,8 @@ from flask import render_template, url_for, redirect, request
 
 import networkx as nx
 from networkx.drawing import hypergraph_layout
-from networkx.web_page import app
-from networkx.web_page.templates.forms import Parameters
+from web_page import app
+from web_page.forms import Parameters
 from networkx.drawing.our_layout import force_directed_hyper_graphs_using_social_and_gravity_scaling
 
 
@@ -46,7 +46,7 @@ def find_algo(algo):
 
 @app.route("/result")
 def result():
-    return render_template('resultpage.html')
+    return render_template('templates/resultpage.html')
 
 
 @app.route("/", methods=['GET', 'POST'])
@@ -58,8 +58,8 @@ def home():
             iterations=form.iter.data,
             centrality=find_centrality(form.centrality.data),
             graph_type=find_algo(form.type.data), gravity=form.gravity.data, fig=True)
-        pic_path = os.path.join(app.root_path, 'static\images\plot.png')
+        pic_path = os.path.join(app.root_path, 'static/images/plot.png')
         fig.savefig(pic_path)
         return redirect(url_for('result'))
     else:
-        return render_template('homepage.html', form=form)
+        return render_template('templates/homepage.html', form=form)
